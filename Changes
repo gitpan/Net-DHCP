@@ -1,5 +1,27 @@
 Revision history for Perl extension Net::DHCP.
 
+*** 0.60  Mar 29 2005
+
+Lots of tests added.
+
+getOption() and addOption() removed and replaced by:
+- getOptionValue() & addOptionValue() which provide automatic
+  type conversion to/from text representation
+- getOptionRaw() & addOptionRaw() to manipulate binary
+  format packed into strings.
+new() now behaves differently for DHCP options, requiring text
+values and not packed binary values.
+
+toString() now escapes unprintable characters.
+
+Added methods : ciaddrRaw, giaddrRaw, siaddrRaw, yiaddrRaw that
+use packed binary formats. They are provided for performance enhancements
+when you want to avoid unnecessary type conversion.
+
+Pad options (0x00) are now supported.
+
+Example of DHCPLeaseQuery provided by John A. Murphy.
+
 *** 0.53  Mar 02 2005
 
 Performance enhancement in Packet->new() avoirding unnecessary
