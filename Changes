@@ -1,5 +1,14 @@
 Revision history for Perl extension Net::DHCP.
 
+*** 0.53  Mar 02 2005
+
+Performance enhancement in Packet->new() avoirding unnecessary
+type conversion and function calls.
+
+Support for DHCPLEASEQUERY, Cisco extension (draft-ietf-dhc-leasequery-05.txt).
+Corrected bug in Packet->new() not allowing '0' in Hlen and Htype parameters.
+Thanks to John A. Murphy.
+
 *** 0.52  Feb 24 2005
 
 Performance enhancements in Packet.pm.

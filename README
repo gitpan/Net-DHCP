@@ -1,4 +1,4 @@
-Net-DHCP version 0.52
+Net-DHCP version 0.53
 =====================
 
 1. DESCRIPTION
@@ -8,7 +8,7 @@ Net::DHCP is a DHCP set of classes designed to handle basic DHCP
 handling. It can be used to develop either client, server or relays.
 It is composed of 100% pure Perl.
 
-The author invites feedback on Net::DNS.  If there's something you'd
+The author invites feedback on Net::DHCP. If there's something you'd
 like to have added, please let me know.  If you find a bug, please
 send me the information described in the BUGS section below.
 
