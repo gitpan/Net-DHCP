@@ -1,61 +1,366 @@
 # Net::DHCP::Packet.pm
-# Version 0.0
-# Author: F. van Dun
-#
-# Some information about a DHCP packet from RFC 1497:
-#	FIELD      OCTETS       DESCRIPTION
-#   -----      ------       -----------
-#
-#   op            1  Message op code / message type.
-#                    1 = BOOTREQUEST, 2 = BOOTREPLY
-#   htype         1  Hardware address type, see ARP section in "Assigned
-#                    Numbers" RFC; e.g., '1' = 10mb ethernet.
-#   hlen          1  Hardware address length (e.g.  '6' for 10mb
-#                    ethernet).
-#   hops          1  Client sets to zero, optionally used by relay agents
-#                    when booting via a relay agent.
-#   xid           4  Transaction ID, a random number chosen by the
-#                    client, used by the client and server to associate
-#                    messages and responses between a client and a
-#                    server.
-#   secs          2  Filled in by client, seconds elapsed since client
-#                    began address acquisition or renewal process.
-#   flags         2  Flags (see figure 2).
-#   ciaddr        4  Client IP address; only filled in if client is in
-#                    BOUND, RENEW or REBINDING state and can respond
-#                    to ARP requests.
-#   yiaddr        4  'your' (client) IP address.
-#   siaddr        4  IP address of next server to use in bootstrap;
-#                    returned in DHCPOFFER, DHCPACK by server.
-#   giaddr        4  Relay agent IP address, used in booting via a
-#                    relay agent.
-#   chaddr       16  Client hardware address.
-#   sname        64  Optional server host name, null terminated string.
-#   file        128  Boot file name, null terminated string; "generic"
-#                    name or null in DHCPDISCOVER, fully qualified
-#                    directory-path name in DHCPOFFER.
-#   options     var  Optional parameters field.  See the options
-#                    documents for a list of defined options.
-#
-#           Table 1:  Description of fields in a DHCP message
-#
-# Difference between bootp and DHCP:
-#   The first four octets of the 'options' field of the DHCP message
-#   contain the (decimal) values 99, 130, 83 and 99, respectively (this
-#
-#   is the same magic cookie as is defined in RFC 1497).  The remainder
-#   of the 'options' field consists a list of tagged parameters that are
-#   called "options".  All of the "vendor extensions" listed in RFC 1497
-#   are also DHCP options.  A separate document gives the complete set of
-#   options defined for use with DHCP [2].
+# Version 0.50
+# Original Author: F. van Dun
+# Author : S. Hadinger
 
 package Net::DHCP::Packet;
-use Socket;
+
+# standard module declaration
+use 5.8.0;
 use strict;
+our (@ISA, @EXPORT, @EXPORT_OK, $VERSION);
+use Exporter;
+$VERSION = 0.50;
+@ISA = qw(Exporter);
+@EXPORT = qw( packinet packinets unpackinet unpackinets );
+@EXPORT_OK = qw( );
+
+use Socket;
 use Carp;
-use Net::DHCP::Options;
-use vars qw($VERSION);
-$VERSION=0.1;
+use Net::DHCP::Constants qw(:DEFAULT :dhcp_hashes);
+use Scalar::Util qw(looks_like_number);		# for numerical testing
+
+#=======================================================================
+sub new {
+	my $class = shift;
+	
+	my $self = {	options => {},					# DHCP options
+								options_order => []			# order in which the options were added
+						};
+	bless $self, $class;
+	if (scalar @_ == 1) {	# we build the packet from a binary string
+		$self->marshall(shift);
+	} else {
+		my %args = @_;
+		my @ordered_args = @_;
+		$self->op($args{Op} || BOOTREQUEST());
+		$self->htype($args{Htype} || 1);	# 10mb ethernet
+		$self->hlen($args{Hlen} || 6);		# Use 6 bytes MAC by default
+		$self->hops($args{Hops} || 0);
+		$self->xid($args{Xid} || 0x12345678);
+		$self->secs($args{Secs} || 0);
+		$self->flags($args{Flags} || 0);
+		$self->ciaddr($args{Ciaddr} || "0.0.0.0");
+		$self->yiaddr($args{Yiaddr} || "0.0.0.0");
+		$self->siaddr($args{Siaddr} || "0.0.0.0");
+		$self->giaddr($args{Giaddr} || "0.0.0.0");
+		$self->chaddr($args{Chaddr} || "" );
+		$self->sname($args{Sname} || "");
+		$self->file($args{File} || "");
+		$self->padding($args{Padding} || "");
+		
+		$self->isDhcp($args{IsDhcp} || 1);
+
+		# TBM add DHCP option parsing
+		while (defined(my $key = shift(@ordered_args))) {
+			my $value = shift(@ordered_args);
+			next unless looks_like_number($key);			# skip non-numerical keys
+			$self->addOption($key, $value);
+		}
+	}
+	return $self;
+}
+#=======================================================================
+# op attribute
+sub op {
+    my $self = shift;
+    if (@_) { $self->{op} = shift } 
+    return $self->{op};
+} 
+
+# htype attribute
+sub htype {
+	my $self = shift;
+	if (@_) { $self->{htype} = shift }
+	return $self->{htype};
+}
+
+# hlen attribute
+sub hlen {
+	my $self = shift;
+	if (@_) { $self->{hlen} = shift }
+	if ($self->{hlen} < 0)  { carp("hlen must not be < 0 (currently ".$self->{hlen}.")") }
+	if ($self->{hlen} > 16) { carp("hlen must not be > 16 (currently ".$self->{hlen}.")") }
+	return $self->{hlen};
+}
+
+# hops attribute
+sub hops {
+	my $self = shift;
+	if (@_) { $self->{hops} = shift }
+	return $self->{hops};
+}
+
+# xid attribute
+sub xid {
+	my $self = shift;
+	if (@_) { $self->{xid} = shift }
+	return $self->{xid};
+}
+
+# secs attribute
+sub secs {
+	my $self = shift;
+	if (@_) { $self->{secs} = shift }
+	return $self->{secs};
+}
+
+# flags attribute
+sub flags {
+	my $self = shift;
+	if (@_) { $self->{flags} = shift }
+	return $self->{flags};
+}
+
+# ciaddr attribute
+sub ciaddr {
+	my $self = shift;
+	if (@_) { $self->{ciaddr} = packinet(shift) }
+	return unpackinet($self->{ciaddr});
+} 
+
+# yiaddr attribute
+sub yiaddr {
+	my $self = shift;
+	if (@_) { $self->{yiaddr} = packinet(shift) }
+	return unpackinet($self->{yiaddr});
+} 
+
+# siaddr attribute
+sub siaddr {
+	my $self = shift;
+	if (@_) { $self->{siaddr} = packinet(shift) }
+	return unpackinet($self->{siaddr});
+}
+
+# giaddr attribute
+sub giaddr {
+	my $self = shift;
+	if (@_) { $self->{giaddr} = packinet(shift) }
+	return unpackinet($self->{giaddr});
+}
+
+# chaddr attribute
+sub chaddr {
+	my $self = shift;
+	if (@_) { $self->{chaddr} = pack("H*", shift) }
+	return unpack("H*", $self->{chaddr});
+}
+
+# sname attribute
+sub sname {
+	use bytes;
+	my $self = shift;
+	if (@_) { $self->{sname} = shift }
+	if (length($self->{sname}) > 63) {
+		carp("'sname' must not be > 63 bytes, (currently ".length($self->{sname}).")");
+		$self->{sname} = pack("a63", $self->{sname});
+	}
+	return $self->{sname};
+}
+
+# file attribute
+sub file {
+	use bytes;
+	my $self = shift;
+	if (@_) { $self->{file} = shift } 
+	if (length($self->{file}) > 127) {
+		carp("'file' must not be > 127 bytes, (currently ".length($self->{file}).")");
+		$self->{file} = pack("a127", $self->{file});
+	}
+	return $self->{file};
+}
+
+# is it DHCP or BOOTP
+#		-> DHCP needs magic cookie and options
+sub isDhcp {
+	my $self = shift;
+	if (@_) { $self->{isDhcp} = shift } 
+	return $self->{isDhcp};
+}
+
+# padding attribute
+sub padding {
+	my $self = shift;
+	if (@_) { $self->{padding} = shift }
+	return $self->{padding};
+}
+#=======================================================================
+sub addOption {
+	my ($self,$key,$value) = @_;
+	$self->{options}->{$key} = $value;
+	push @{$self->{options_order}}, ($key);
+}
+
+sub getOption {
+	my ($self,$key) = @_;
+	return $self->{options}->{$key} if exists($self->{options}->{$key});
+	return undef;
+}
+#=======================================================================
+my $BOOTP_FORMAT = 'C C C C N n n a4 a4 a4 a4 a16 Z64 Z128 a*';
+my $DHCP_MIN_LENGTH = length(pack($BOOTP_FORMAT));
+#=======================================================================
+sub serialize {
+	use bytes;
+	my ($self) = @_;
+	my $bytes = undef;
+	
+	$bytes = pack($BOOTP_FORMAT,			
+		$self->{op},
+		$self->{htype},
+		$self->{hlen},
+		$self->{hops},
+		$self->{xid},
+		$self->{secs},
+		$self->{flags},
+		$self->{ciaddr},
+		$self->{yiaddr},
+		$self->{siaddr},
+		$self->{giaddr},
+		$self->{chaddr},
+		$self->{sname},
+		$self->{file}
+		);
+	
+	if ($self->{isDhcp}) {		# add MAGIC_COOKIE and options
+		$bytes .= MAGIC_COOKIE();	
+		foreach my $key ( @{$self->{options_order}} ) {
+			$bytes .= pack('C', $key);
+			$bytes .= pack('C/a*', $self->{options}->{$key});
+		}
+		$bytes .= pack('C', 255);
+	}
+	
+	$bytes .= $self->{padding};		# add optional padding
+	
+	# TBM verify maximum DHCP packet size
+	return $bytes;
+}
+#=======================================================================
+# TBM : verify packet minimum size
+sub marshall {
+	use bytes;
+	my ($self, $buf) = @_;
+	my $opt_buf;
+	
+	if (length($buf) < $DHCP_MIN_LENGTH) {
+		croak("mashall: packet too small (".length($buf)."), minimum size is $DHCP_MIN_LENGTH");
+	}
+	
+	(
+	$self->{op},
+	$self->{htype},
+	$self->{hlen},
+	$self->{hops},
+	$self->{xid},
+	$self->{secs},
+	$self->{flags},
+	$self->{ciaddr},
+	$self->{yiaddr},
+	$self->{siaddr},
+	$self->{giaddr},
+	$self->{chaddr},
+	$self->{sname},
+	$self->{file},
+	$opt_buf ) = unpack($BOOTP_FORMAT, $buf);
+
+	$self->{isDhcp} = 0;			# default to BOOTP
+	if ((length($opt_buf) > 4) && (substr($opt_buf,0,4) eq MAGIC_COOKIE())) {
+		# it is definitely DHCP
+		$self->{isDhcp} = 1;
+
+		my $pos = 4;	# Skip magic cookie
+		my $total = length($opt_buf);
+	
+		while ($pos < $total) {
+			my $type = ord(substr($opt_buf,$pos++,1));
+			last if ($type eq 255);				# Type 'FF' signals end of options.
+			my $len = ord(substr($opt_buf,$pos++,1));
+			my $option = substr($opt_buf,$pos,$len);
+			$pos += $len;
+			$self->addOption($type,$option);
+		}
+		if ($pos < $total) {
+			$self->{padding} = substr($opt_buf, $pos, $total-$pos);
+		} else {
+			$self->{padding} = '';
+		}
+	} else {
+		$self->{padding} = $opt_buf;
+	}
+	
+	return $self;
+}
+
+#=======================================================================
+sub toString {
+	my ($self) = @_;
+	my $s = "";
+	
+	$s .= sprintf("op = %s\n", (exists($REV_BOOTP_CODES{$self->op()}) && $REV_BOOTP_CODES{$self->op()}) || $self->op());
+	$s .= sprintf("htype = %s\n", (exists($REV_HTYPE_CODES{$self->htype()}) && $REV_HTYPE_CODES{$self->htype()}) || $self->htype());
+	$s .= sprintf("hlen = %s\n", $self->hlen());
+	$s .= sprintf("hops = %s\n", $self->hops());
+	$s .= sprintf("xid = %x\n", $self->xid());
+	$s .= sprintf("secs = %i\n", $self->secs());
+	$s .= sprintf("flags = %x\n", $self->flags());
+	$s .= sprintf("ciaddr = %s\n", $self->ciaddr());
+	$s .= sprintf("yiaddr = %s\n", $self->yiaddr());
+	$s .= sprintf("siaddr = %s\n", $self->siaddr());
+	$s .= sprintf("giaddr = %s\n", $self->giaddr());
+	$s .= sprintf("chaddr = %s\n", substr($self->chaddr(),0,2 * $self->hlen()));
+	$s .= sprintf("sname = %s\n", $self->sname());
+	$s .= sprintf("file = %s\n", $self->file());
+	$s .= "Options : \n";
+	
+	foreach my $key ( @{$self->{options_order}} ) {
+		my ($raw_value, $value);
+		$raw_value = $value = $self->{options}->{$key};		# display in string format by default
+		
+		if (exists $Net::DHCP::Constants::DHO_FORMATS{$key}) {
+			my $form = $Net::DHCP::Constants::DHO_FORMATS{$key};
+			
+			if 		($key == DHO_DHCP_MESSAGE_TYPE()) { $value = (exists($REV_DHCP_MESSAGE{$raw_value}) && $REV_DHCP_MESSAGE{$raw_value}) || $raw_value }
+			elsif ($form eq 'inet')   { $value = unpackinet($raw_value) }
+			elsif ($form eq 'inets')  { $value = unpackinets($raw_value) }
+			elsif ($form eq 'hex')    { $value = unpack("H*", $raw_value) }
+			elsif ($form eq 'opt')		{ $value = $raw_value }		# to be completed
+			elsif ($form eq 'byte')		{ $value = unpack("C", $raw_value) }
+			elsif ($form eq 'short')	{ $value = unpack("n", $raw_value) }
+			elsif ($form eq 'int')    { $value = unpack("N", $raw_value) }
+			elsif ($form eq 'shorts')	{ $value = join(" ", unpack("n", $raw_value)) }
+			elsif ($form eq 'string')	{ $value = $raw_value }
+		}
+		
+		$s .= sprintf(" %s(%d) = %s\n", exists $REV_DHO_CODES{$key} ? $REV_DHO_CODES{$key}: '', $key, $value);
+	}
+	$s .= sprintf("padding [%s] = %s\n", length($self->{padding}), $self->{padding});
+	
+	return $s;
+}
+#=======================================================================
+# internal utility functions
+# never failing versions of the "Socket" module functions
+sub unpackinet($) {		# bullet-proof version, never complains
+	return join('.', unpack('C4', shift));
+}
+
+sub packinet($) {		# bullet-proof version, never complains
+	return pack('C4', split(/\./, shift));
+}
+
+sub packinets($) {		# multiple ip addresses, space delimited
+	return join('', map(pack('C4', split(/\./, $_)), split(/\s+/, shift)));
+}
+
+sub unpackinets($) {	# multiple ip addresses
+	return join(" ", map(join('.', unpack('C4', $_)), unpack("(a4)*", shift)));
+}
+
+#=======================================================================
+
+1;
 
 =pod
 
@@ -65,459 +370,316 @@ Net::DHCP::Packet - Object methods to create a DHCP packet.
 
 =head1 SYNOPSIS
 
-    use Net::DHCP::Packet;
-	use strict;
+   use Net::DHCP::Packet;
 
-	my $p = new Net::DHCP::Packet('Chaddr' => '0??BCDEF', 
-				'Xid' => hex(0x9F0FD),
-				'Ciaddr' => '0.0.0.0',
-				'Siaddr' => '0.0.0.0', 'Hops' => 0);
+   my $p = new Net::DHCP::Packet->new(
+        'Chaddr' => '000BCDEF', 
+        'Xid' => 0x9F0FD,
+        'Ciaddr' => '0.0.0.0',
+        'Siaddr' => '0.0.0.0', 'Hops' => 0);
 
 =head1 DESCRIPTION
 
 Represents a DHCP packet as specified in RFC 1533, RFC 2132.
 
-=head2 CONSTRUCTORS
+=head1 CONSTRUCTOR
 
-=item new
+This module only provides basic constructor. For "easy" constructors, you can use
+the L<Net::DHCP::Session> module.  
 
-=item discover
+=over 4
 
-=item request
+=item new ( BUFFER )
 
-=item decline
+=item new ( [%ARGS] )
 
-=item release
+Creates an C<Net::DHCP::Packet> object, which can be used to send or receive
+DHCP network packets. BOOTP is not supported.
 
+Without argument, a default empty packet is created.
 
-=head2 METHODS
+	$packet = Net::DHCP::Packet();
 
-=cut
+A C<BUFFER> argument is interpreted as a binary buffer like one provided
+by the socket C<recv()> function. if the packet is malformed, a fatal error
+is issued.
 
-# Opcode
-sub BOOTREQUEST() 	{ 0x1 }
-sub BOOTREPLY() 	{ 0x2 }
+   use IO::Socket::INET;
+   use Net::DHCP::Packet;
+   
+   $sock = IO::Socket::INET->new(LocalPort => 67, Proto => "udp", Broadcast => 1)
+           or die "socket: $@";
+           
+   while ($sock->recv($newmsg, 1024)) {
+       $packet = Net::DHCP::Packet->new($newmsg);
+       print $packet->toString();
+   }
 
-sub randomstring($) {
-	my $len = shift;
-	my $c;
-	while ($len--) {
-		$c .= chr(int (rand(255)));
-	}
-	return $c;
-}
+To create a fresh new packet C<new> takes arguments as a key-value pairs :
 
-sub mac2str($$) {
-	my $nibbles = shift(@_) * 2;
-	my $str = unpack("H$nibbles", shift);
-	return $str;
-}
+   ARGUMENT   FIELD      OCTETS       DESCRIPTION
+   --------   -----      ------       -----------
+   
+   Op         op            1  Message op code / message type.
+                               1 = BOOTREQUEST, 2 = BOOTREPLY
+   Htype      htype         1  Hardware address type, see ARP section in "Assigned
+                               Numbers" RFC; e.g., '1' = 10mb ethernet.
+   Hlen       hlen          1  Hardware address length (e.g.  '6' for 10mb
+                               ethernet).
+   Hops       hops          1  Client sets to zero, optionally used by relay agents
+                               when booting via a relay agent.
+   Xid        xid           4  Transaction ID, a random number chosen by the
+                               client, used by the client and server to associate
+                               messages and responses between a client and a
+                               server.
+   Secs       secs          2  Filled in by client, seconds elapsed since client
+                               began address acquisition or renewal process.
+   Flags      flags         2  Flags (see figure 2).
+   Ciaddr     ciaddr        4  Client IP address; only filled in if client is in
+                               BOUND, RENEW or REBINDING state and can respond
+                               to ARP requests.
+   Yiaddr     yiaddr        4  'your' (client) IP address.
+   Siaddr     siaddr        4  IP address of next server to use in bootstrap;
+                               returned in DHCPOFFER, DHCPACK by server.
+   Giaddr     giaddr        4  Relay agent IP address, used in booting via a
+                               relay agent.
+   Chaddr     chaddr       16  Client hardware address.
+   Sname      sname        64  Optional server host name, null terminated string.
+   File       file        128  Boot file name, null terminated string; "generic"
+                               name or null in DHCPDISCOVER, fully qualified
+                               directory-path name in DHCPOFFER.
+   IsDhcp     isDhcp        4  Controls whether the packet is BOOTP or DHCP.
+                               DHCP conatains the "magic cookie" of 4 bytes.
+                               0x63 0x82 0x53 0x63.
+   DHO_* code                  Optional parameters field.  See the options
+                               documents for a list of defined options.
+                               See Net::DHCP::Constants.
+   Padding    padding       *  Optional padding at the end of the packet
 
-sub str2mac($) {
-	pack('H*', shift);
-}
+See below methods for values and syntax descrption.
 
-=pod
+=back
 
-=item op(BYTE opcode)
+=head1 METHODS
 
-	Sets the opcode in the BOOTP type.
-	Without argument, returns the BOOTP type.
-	Argument is either:
-	Net::DHCP::Packet::BOOTREQUEST() 	{ pack('C',0x1) }
-	Net::DHCP::Packet::BOOTREPLY() 	{ pack('C',0x2) }
+=head2 ATTRIBUTE METHODS
 
-=cut
-sub op {
-	my ($self, $arg) = @_;
-	$self->{op} = $arg unless (!defined ($arg));
-	return $self->{op};
-}
-=pod
+=over 4
 
-=item htype(BYTE hardware address type)
+=item op ( [BYTE] )
 
-	Ex. '1' = 10mb ethernet
+Sets/gets the I<BOOTP opcode>.
 
-=cut
-sub htype {
-	my ($self, $arg) = @_;
-	$self->{htype} = $arg unless (!defined ($arg));
-	return $self->{htype};
-}
-=pod
+Normal values are:
+	BOOTREQUEST()
+	BOOTREPLY()
 
-=item hlen(BYTE hardware address length)
+=item htype ( [BYTE] )
 
-	For most NIC's, the MAC address has 6 bytes.
+Sets/gets the I<hardware address type>.
 
-=cut
-sub hlen {
-	my ($self, $arg) = @_;
-	$self->{hlen} = $arg unless (!defined ($arg));
-	return $self->{hlen};
-}
-=pod
+Common value is: C<HTYPE_ETHER()> (1) = ethernet
 
-=item hops(BYTE number of hops)
+=item hlen ( [BYTE] )
 
-	This field is incremented by each encountered DHCP relay agent.	
-	
-=cut
-sub hops {
-	my ($self, $arg) = @_;
-	$self->{hops} = $arg unless (!defined ($arg));
-	return $self->{hops};
-}
-=pod
+Sets/gets the I<hardware address length>. Value must be between C<0> and C<16>.
 
-=item xid(C4 transaction id)
+For most NIC's, the MAC address has 6 bytes.
 
-	4 byte transaction id.
+=item hops ( [BYTE] )
 
-=cut
-sub xid {
-	my ($self, $arg) = @_;
-	$self->{xid} = $arg unless (!defined ($arg));
-	return $self->{xid};
-}
-=pod
+Sets/gets the I<number of hops>.
 
-=item secs(SHORT elapsed boot time)
+This field is incremented by each encountered DHCP relay agent.	
 
-	2 bytes for elapsed boot time.
+=item xid ( [INTEGER] )
 
-=cut
-sub secs {
-	my ($self, $arg) = @_;
-	$self->{secs} = $arg unless (!defined ($arg));	# unsigned Short. Exactly 16 bits.
-	return $self->{secs};
-}
-=pod
+Sets/gets the 32 bits I<transaction id>.
 
-=item flags(SHORT)
+=item secs ( [SHORT] )
 
-	2 bytes. 
-	0x0000 = No broadcasts.
-	0x1000 = Broadcasts.
+Sets/gets the 16 bits I<elapsed boot time> in seconds.
 
-=cut
-sub flags {
-	my ($self, $arg) = @_;
-	$self->{flags} = $arg unless (!defined ($arg));
-	return $self->{flags};
-}
-=pod
+=item flags ( [SHORT] )
 
-=item ciaddr(IP address)
+Sets/gets the 16 bits I<flags>.
 
-	IP address is an ascci string like '10.24.50.3'.
-	
-=cut
-sub ciaddr {
-	my ($self, $arg) = @_;
-	$self->{ciaddr} = $arg unless (!defined($arg));
-	return $self->{ciaddr};
-}
-=pod
+	0x8000 = Broadcast reply requested.
 
-=item yiaddr(IP address)
+=item ciaddr ( [STRING])
 
-=cut
-sub yiaddr {
-	my ($self, $arg) = @_;
-	$self->{yiaddr} = $arg unless (!defined($arg));
-	return $self->{yiaddr};
-}
-=pod
+Sets/gets the I<client IP address>.
 
-=item siaddr(IP address)
+IP address is only accepted as a string like '10.24.50.3'.
 
-=cut
-sub siaddr {
-	my ($self, $arg) = @_;
-	$self->{siaddr} = $arg unless(!defined($arg));
-	return $self->{siaddr};
-}
-=pod
+=item yiaddr ( [STRING] )
 
-=item giaddr(IP address)
+Sets/gets the I<your IP address>.
 
-=cut
-sub giaddr {
-	my ($self, $arg) = @_;
-	$self->{giaddr} = $arg unless (!defined($arg));
-	return $self->{giaddr};
-}
-=pod
+IP address is only accepted as a string like '10.24.50.3'.
 
-=item chaddr(MAC address)
-	Hexadecimal string represenatation.
+=item siaddr ( [STRING] )
+
+Sets/gets the I<next server IP address>.
+
+IP address is only accepted as a string like '10.24.50.3'.
+
+=item giaddr ( [STRING] )
+
+Sets/gets the I<relay agent IP address>.
+
+IP address is only accepted as a string like '10.24.50.3'.
+
+=item chaddr ( [STRING] )
+
+Sets/gets the I<client hardware address>. Its length is given by the C<hlen> attribute.
+
+Valude is formatted as an Hexadecimal string representation.
+
 	Example: "0010A706DFFF" for 6 bytes mac address.
+
+Note : internal format is packed bytes string.
+
+=item sname ( [STRING] )
+
+Sets/gets the "server host name". Maximum size is 63 bytes. If greater
+a warning is issued.
+
+Note : internal format is null terminated string.
+
+=item file ( [STRING] )
+
+Sets/gets the "boot file name". Maximum size is 127 bytes. If greater
+a warning is issued.
+
+Note : internal format is null terminated string.
+
+=item isDhcp ( [BOOLEAN] )
+
+Sets/gets the I<DHCP cookie>. Returns whether the cookie is valid or not,
+hence whether the packet is DHCP or BOOTP.
+
+Default value is C<1>, valid DHCP cookie.
+
+=item padding ( [BYTES] )
+
+Sets/gets the optional padding at the end of the DHCP packet, i.e. after
+DHCP options.
+
+=item addOption ( CODE, VALUE )
+
+Adds a DHCP option field. Common code values are listed in
+C<Net::DHCP::Constants> C<DHO_>*.
+
+Warning: values must be in packed binary format, depending on the
+code value, as described in RFC 2132. No control is done.
+
+   $packet = new Net::DHCP::Packet->new();
+   $packet->addOption(DHO_DHCP_MESSAGE_TYPE(), DHCPINFORM());
+   $packet->addOption(DHO_NAME_SERVERS(), packinets("10.0.0.1 10.0.0.2"));
+
+=item getOption ($type)
+
+Returns the value of a DHCP option.
+
+Warning: values are returned as packed binary strings, as described if
+RFC 2132.
+
+=back
+
+=head2 SERIALIZATION METHODS
+
+=over 4
+
+=item serialize ()
+
+Converts a Net::DHCP::Packet to a string, ready to put on the network.
+
+=item marshall ( BYTES )
+
+The inverse of serialize. Converts a string, presumably a 
+received UDP packet, into a Net::DHCP::Packet.
+
+If the packet is malformed, a fatal error is produced.
+
+=back
+
+=head2 HELPER METHODS
+
+=over 4
+
+=item toString ()
+
+Returns a textual representation of the packet, for debugging.
+
+=item packinet ( STRING )
+
+Transforms a IP address "xx.xx.xx.xx" into a packed 4 bytes string.
+
+These are simple never failing versions of inet_ntoa and inet_aton.
+
+=item packinets ( STRING )
+
+Transforms a list of space delimited IP addresses into a packed bytes string.
+
+=item unpackinet ( STRING )
+
+Transforms a packed bytes IP address into a "xx.xx.xx.xx" string.
+
+=item unpackinets ( STRING )
+
+Transforms a packed bytes liste of IP addresses into a list of
+"xx.xx.xx.xx" space delimited string.
+
+=back
+
+=head1 EXAMPLES
+
+Sending a simple DHCP packet:
+
+	#!/usr/bin/perl
+	# Simple DHCP client - sending a broadcasted DHCP Discover request
 	
-=cut
-sub chaddr {
-	my ($self, $arg) = @_;
-	$self->{chaddr} = $arg unless (!defined ($arg));
-	return $self->{chaddr};
-}
-
-=pod
-
-=item sname(C64 servername)
-
-	Optional 64 bytes null terminated string with server host name.
-
-=cut
-sub sname {
-	my ($self, $arg) = @_;
-	$self->{sname} = $arg unless (!defined ($arg));
-	return $self->{sname};
-}
-=pod
-
-=item file(C128 bootfilename)
+	use IO::Socket::INET;
+	use Net::DHCP::Packet;
+	use Net::DHCP::Constants;
 	
-	Optional
-
-=cut
-sub file {
-	my ($self, $arg) = @_;
-	$self->{file} = $arg unless (!defined ($arg));
-	return $self->{file};
-}
-
-=pod
-
-=item options(REF Net::DHCP::Options)
-
-		Argument is reference to a Net::DHCP::Options object.
-		Without argument, returns the Options object.
-
-=cut
-sub options {
-	my ($self, $arg) = @_;
-	$self->{options} = $arg unless (!defined ($arg));
-	return $self->{options};
-}
-=pod
-
-=item addOption($type, $value)
-
-=cut
-sub addOption {
-	my ($self, $type, $value) = @_;
-	$self->{options}->setOption($type,$value);
-}
-
-=item getOption($type)
-
-=cut
-sub getOption {
-	my ($self, $type) = @_;
-	$self->{options}->getOption(chr($type));
-}
-=pod
-
-=item new(%ARGS)
-
-	The hash %ARGS  can contain any of these keys:
-	Op, Htype, Hlen, Hops, Xid, Secs, Flags, Ciaddr, Yiaddr, Siaddr, 
-	Giaddr, Chaddr, Sname, File
+	# creat DHCP Packet
+	$discover = Net::DHCP::Packet->new(
+	                      op => BOOTREQUEST(),
+	                      xid => int(rand(0xFFFFFFFF)), # random xid
+	                      Flags => 0x8000,              # ask for broadcast answer
+	                      DHO_DHCP_MESSAGE_TYPE() => DHCPDISCOVER()
+	                      );
 	
-=cut
+	# send packet
+	$handle = IO::Socket::INET->new(Proto => 'udp',
+	                                Broadcast => 1,
+	                                PeerPort => '67',
+	                                LocalPort => '68',
+	                                PeerAddr => '255.255.255.255')
+	              or die "socket: $@";     # yes, it uses $@ here
+	$handle->send($discover->serialize())
+	              or die "Error sending broadcast inform:$!\n";
 
-sub new {
-	my ($class, %args)	= @_;
+Sniffing DHCP packets.
+
+	#!/usr/bin/perl
+	# Simple DHCP server - listen to DHCP packets and print them
 	
-	my $self = {};
-	bless $self, $class;
-	$self->op($args{Op} || BOOTREQUEST());
-	$self->htype($args{Htype} || 1);	# 10mb ethernet
-	$self->hlen($args{Hlen} || 6);		# Use 6 bytes MAC by default
-	$self->hops($args{Hops} || 0);
-	$self->xid($args{Xid} || randomstring(4));
-	$self->secs($args{Secs} || 0);
-	$self->flags($args{Flags} || 0);
-	$self->ciaddr($args{Ciaddr} || 0);
-	$self->yiaddr($args{Yiaddr} || 0);
-	$self->siaddr($args{Siaddr} || 0);
-	$self->giaddr($args{Giaddr} || 0);
-	$self->chaddr($args{Chaddr} || randomstring(ord($self->hlen()) ) );
-	$self->sname($args{Sname} || chr(0));
-	$self->file($args{File} || chr(0));
-	$self->{options} = new Net::DHCP::Options();
-	return $self;
-}
-=pod
-
-=item discover
-
-	DHCP discover packet
-
-=cut
-sub discover {
-	my ($class, %args)	= @_;
-	
-	my $self =$class->new(%args);
-	$self->addOption(Net::DHCP::Options::MESSAGE_TYPE(),Net::DHCP::Options::DISCOVER());	
-	$self->addOption(Net::DHCP::Options::CLIENT_ID(), str2mac( '01' . $self->{chaddr} ) );
-	$self->addOption(Net::DHCP::Options::REQUEST_IP(), inet_aton($args{Request_ip}) ) if ( $args{Request_ip} );
-	$self->addOption(Net::DHCP::Options::HOSTNAME(), $args{Hostname}) if ( $args{Hostname} );
-	$self->addOption(Net::DHCP::Options::CLASS_ID(),'MSFT 5.0');
-	return $self;
-}
-=pod
-
-=item request
-
-	DHCP request packet
-	
-=cut
-sub request {
-	my ($class, %args)	= @_;
-	
-	my $self =$class->new(%args);
-	$self->addOption(Net::DHCP::Options::MESSAGE_TYPE(),Net::DHCP::Options::REQUEST());	
-	$self->addOption(Net::DHCP::Options::CLIENT_ID(), str2mac( '01' . $self->{chaddr} ));
-	$self->addOption(Net::DHCP::Options::HOSTNAME(), $args{Hostname} )  if ( $args{Hostname} );
-	$self->addOption(Net::DHCP::Options::SERVER_IP(), inet_aton($args{Server_ip}) ) if ( $args{Server_ip} );
-	$self->addOption(Net::DHCP::Options::CLASS_ID(),'MSFT 5.0');
-	return $self;
-}
-=pod
-
-=item decline
-
-	DHCP decline packet
-
-=cut
-sub decline {
-	my ($class, %args)	= @_;
-	
-	my $self =$class->new(%args);
-	$self->addOption(Net::DHCP::Options::MESSAGE_TYPE(),Net::DHCP::Options::DECLINE());	
-	$self->addOption(Net::DHCP::Options::CLASS_ID(),'MSFT 5.0');
-	return $self;
-}
-=pod
-
-=item release
-
-	DHCP release packet
-
-=cut
-
-sub release {
-	my ($class, %args)	= @_;
-	
-	my $self =$class->new(%args);
-	$self->addOption(Net::DHCP::Options::MESSAGE_TYPE(),Net::DHCP::Options::RELEASE());	
-	$self->addOption(Net::DHCP::Options::CLIENT_ID(), str2mac( '01' . $self->{chaddr})) ;
-	$self->addOption(Net::DHCP::Options::SERVER_IP(), inet_aton($args{Server_ip}) ) if ( $args{Server_ip} );
-	$self->addOption(Net::DHCP::Options::HOSTNAME(), $args{Hostname} ) if ( $args{Hostname} );
-	$self->addOption(Net::DHCP::Options::CLASS_ID(),'MSFT 5.0');
-	return $self;
-}
-
-=pod
-=item inform
-
-	DHCP inform packet
-
-=cut
-
-sub inform {
-	my ($class, %args)	= @_;
-	
-	my $self =$class->new(%args);
-	$self->addOption(Net::DHCP::Options::MESSAGE_TYPE(),Net::DHCP::Options::INFORM());	
-	$self->addOption(Net::DHCP::Options::CLIENT_ID(), str2mac( '01' . $self->{chaddr})) ;
-	$self->addOption(Net::DHCP::Options::SERVER_IP(), inet_aton($args{Server_ip}) ) if ( $args{Server_ip} );
-	$self->addOption(Net::DHCP::Options::HOSTNAME(), $args{Hostname} ) if ( $args{Hostname} );
-	$self->addOption(Net::DHCP::Options::CLASS_ID(),'MSFT 5.0');
-	return $self;
-}
-
-=pod
-
-=item serialize
-
-	Converts a Net::DHCP::Packet to a string, ready to put on the network.
-
-=cut
-sub serialize {
-	my ($self) = @_;
-	my $bytes = undef;
-	$bytes .= pack('C',$self->op());
-	$bytes .= pack('C',$self->htype());
-	$bytes .= pack('C',$self->hlen());
-	$bytes .= pack('C',$self->hops());
-	$bytes .= $self->xid();
-	$bytes .= pack('S',$self->secs());
-	$bytes .= pack('S',$self->flags());
-	$bytes .= inet_aton($self->ciaddr());
-	$bytes .= inet_aton($self->yiaddr());
-	$bytes .= inet_aton($self->siaddr());
-	$bytes .= inet_aton($self->giaddr());
-	$bytes .= pack('C16', unpack('C16', str2mac($self->chaddr()) ) );
-	$bytes .= pack('C64', unpack('C64',$self->sname()));
-	$bytes .= pack('C128', unpack('C128',$self->file()));
-	$bytes .= $self->{options}->serialize();
-	return $bytes;
-}
-=pod
-
-=item marshall(string)
-
-	The inverse of serialize. Converts a string, presumably a 
-	received UDP packet, into a Net::DHCP::Packet.
-
-=cut
-sub marshall {
-	use bytes;
-	my ($self,$bytes) = @_;
-	my $pos = 0;
-	$self->{op} = unpack('C',substr($bytes,$pos++,1));
-	$self->{htype} = unpack('C',substr($bytes,$pos++,1));
-	$self->{hlen} = unpack('C',substr($bytes,$pos++,1));
-	$self->{hops} = unpack('C',substr($bytes,$pos++,1));
-	$self->{xid} = substr($bytes,$pos,4); $pos+=4;
-	$self->{secs} = substr($bytes,$pos,2); $pos+=2;
-	$self->{flags} = substr($bytes,$pos,2); $pos+=2;
-	$self->{ciaddr} = inet_ntoa(substr($bytes,$pos,4)); $pos+=4;
-	$self->{yiaddr} = inet_ntoa(substr($bytes,$pos,4)); $pos+=4;
-	$self->{siaddr} = inet_ntoa(substr($bytes,$pos,4)); $pos+=4;
-	$self->{giaddr} = inet_ntoa(substr($bytes,$pos,4)); $pos+=4;
-	$self->{chaddr} = mac2str($self->{hlen},substr($bytes,$pos,16)); $pos+=16;	
-	$self->{sname} = substr($bytes,$pos,64); $pos+=64;	
-	$self->{sname} = substr($bytes,$pos,128); $pos+=128;	
-	$self->{options} = new Net::DHCP::Options()->marshall(substr($bytes,$pos));
-	return $self;
-}
-=pod
-
-=item toString()
-
-	Returns a textual representation of the packet, for debugging.
-
-=cut
-sub toString {
-	my ($self) = @_;
-	my $s = "";
-	while ( my ($key, $value) = each (%$self) ) {
-		next if ($key eq 'options');
-		$s .= sprintf("%s = %s\n",$key,$value);
+	use IO::Socket::INET;
+	use Net::DHCP::Packet;
+	$sock = IO::Socket::INET->new(LocalPort => 67, Proto => "udp", Broadcast => 1)
+	        or die "socket: $@";
+	while ($sock->recv($newmsg, 1024)) {
+	        $packet = Net::DHCP::Packet->new($newmsg);
+	        print $packet->toString();
 	}
-	$s .= sprintf("options =\n %s\n", $self->{options}->toString());
-	return $s;
-}
-
-=pod
 
 =head1 AUTHOR
 
-F. van Dun
+Stephan Hadinger E<lt>shadinger@cpan.orgE<gt>.
+Original version by F. van Dun.
 
 =head1 BUGS
 
@@ -532,8 +694,6 @@ Perl itself.
 
 =head1 SEE ALSO
 
-perl(1), Net::DHCP::Options.
+L<Net::DHCP::Options>, L<Net::DHCP::Constants>.
 
 =cut
-
-1;

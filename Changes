@@ -1,0 +1,12 @@
+Revision history for Perl extension Net::DHCP.
+
+*** 0.50  Feb  8 2005
+
+Deeply rewritten version based on Net::DHCP v0.11 by Francis
+van Dun.
+
+Net::DHCP::Session is momentarily missing, it should be
+reintroduced soon.
+
+---
+Stephan Hadinger <shadinger@cpan.org>

@@ -1,8 +1,0 @@
-Manifest
-Makefile.PL
-t/t1.t
-examples/dhc-session.pl
-examples/dhc-session2.pl
-lib/Net/DHCP/Options.pm
-lib/Net/DHCP/Packet.pm
-lib/Net/DHCP/Session.pm

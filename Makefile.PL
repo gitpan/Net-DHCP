@@ -1,19 +1,14 @@
-# -*- perl -*-
-#
-# $Id: Makefile.PL,v 0.1 2002/08/15 14:23:53 Fva Exp $
-#
-
+use 5.8.0;
 use ExtUtils::MakeMaker;
-my @examples = qw(dhc-session.pl dhc-session2.pl);
-
-my %opts = (
-    'NAME'	=> 'Net::DHCP',
-    'VERSION_FROM' => 'lib/Net/DHCP/Session.pm', # finds $VERSION
-    'PREREQ_PM' => { 'IO::Socket::INET' => 0,  'Sys::Hostname' => 0,  'IO::Select' =>0},
+# See lib/ExtUtils/MakeMaker.pm for details of how to influence
+# the contents of the Makefile that is written.
+WriteMakefile(
+    NAME              => 'Net::DHCP',
+    VERSION_FROM      => 'lib/Net/DHCP/Packet.pm', # finds $VERSION
+    PREREQ_PM         => {}, # e.g., Module::Name => 1.1
+    ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
+      (
+#       ABSTRACT_FROM  => 'lib/Net/DHCP.pm', # retrieve abstract from module
+       AUTHOR         => 'Stephan Hadinger <shadinger@cpan.org>',
+      ) : ()),
 );
-
-if ($ExtUtils::MakeMaker::VERSION >= 5.43) {
-    $opts{AUTHOR} = 'Francis van Dun (francis.vandun@pandora.be)';
-}
-
-WriteMakefile(%opts);
