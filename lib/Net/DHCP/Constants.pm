@@ -1,5 +1,5 @@
 # Net::DHCP::Constants.pm
-# Version 0.51
+# Version 0.52
 # Author: Stephan Hadinger
 
 package Net::DHCP::Constants;
@@ -9,7 +9,7 @@ use 5.8.0;
 use strict;
 our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS, $VERSION);
 use Exporter;
-$VERSION = 0.51;
+$VERSION = 0.52;
 @ISA = qw(Exporter);
 
 @EXPORT = qw(MAGIC_COOKIE);

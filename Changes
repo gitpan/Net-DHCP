@@ -1,5 +1,9 @@
 Revision history for Perl extension Net::DHCP.
 
+*** 0.52  Feb 24 2005
+
+Performance enhancements in Packet.pm.
+
 *** 0.51  Feb 20 2005
 
 Added encoding and decoding functions for Relay Agent information

@@ -1,5 +1,5 @@
 # Net::DHCP::Packet.pm
-# Version 0.51
+# Version 0.52
 # Original Author: F. van Dun
 # Author : S. Hadinger
 
@@ -10,7 +10,7 @@ use 5.8.0;
 use strict;
 our (@ISA, @EXPORT, @EXPORT_OK, $VERSION);
 use Exporter;
-$VERSION = 0.51;
+$VERSION = 0.52;
 @ISA = qw(Exporter);
 @EXPORT = qw( packinet packinets unpackinet unpackinets );
 @EXPORT_OK = qw( );
