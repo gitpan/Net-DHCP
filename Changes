@@ -1,5 +1,13 @@
 Revision history for Perl extension Net::DHCP.
 
+*** 0.51  Feb 20 2005
+
+Added encoding and decoding functions for Relay Agent information
+(option 82 - RFC 3046).
+
+Comment field added in the Packet object. This lets you put any comment
+in the Packet object, such as a transaction number. This field not processed.
+
 *** 0.50  Feb  8 2005
 
 Deeply rewritten version based on Net::DHCP v0.11 by Francis

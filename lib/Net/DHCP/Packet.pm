@@ -1,5 +1,5 @@
 # Net::DHCP::Packet.pm
-# Version 0.50
+# Version 0.51
 # Original Author: F. van Dun
 # Author : S. Hadinger
 
@@ -10,7 +10,7 @@ use 5.8.0;
 use strict;
 our (@ISA, @EXPORT, @EXPORT_OK, $VERSION);
 use Exporter;
-$VERSION = 0.50;
+$VERSION = 0.51;
 @ISA = qw(Exporter);
 @EXPORT = qw( packinet packinets unpackinet unpackinets );
 @EXPORT_OK = qw( );
@@ -33,6 +33,7 @@ sub new {
 	} else {
 		my %args = @_;
 		my @ordered_args = @_;
+		$self->comment($args{Comment} || undef);
 		$self->op($args{Op} || BOOTREQUEST());
 		$self->htype($args{Htype} || 1);	# 10mb ethernet
 		$self->hlen($args{Hlen} || 6);		# Use 6 bytes MAC by default
@@ -61,6 +62,13 @@ sub new {
 	return $self;
 }
 #=======================================================================
+# comment attribute : enables transaction number identification
+sub comment {
+    my $self = shift;
+    if (@_) { $self->{comment} = shift } 
+    return $self->{comment};
+} 
+
 # op attribute
 sub op {
     my $self = shift;
@@ -292,12 +300,47 @@ sub marshall {
 	
 	return $self;
 }
+#=======================================================================
+sub decodeRelayAgent($$) {
+	use bytes;
+	my $self = shift;
+	my ($opt_buf) = @_;
+	my %opt;
+	
+	if (length($opt_buf) > 1) {
+		my $pos = 0;
+		my $total = length($opt_buf);
+	
+		while ($pos < $total) {
+			my $type = ord(substr($opt_buf,$pos++,1));
+			my $len = ord(substr($opt_buf,$pos++,1));
+			my $option = substr($opt_buf,$pos,$len);
+			$pos += $len;
+			$opt{$type} = $option;
+		}
+	}
+	return %opt;
+}
 
+sub encodeRelayAgent($@) {
+	use bytes;
+	my $self = shift;
+	my @opt = @_;
+	my $buf = '';
+
+	while (defined(my $key = shift(@opt))) {
+		my $value = shift(@opt);
+		$buf .= pack('C', $key);
+		$buf .= pack('C/a*', $value);
+	}
+	return $buf;
+}
 #=======================================================================
 sub toString {
 	my ($self) = @_;
 	my $s = "";
 	
+	$s .= sprintf("comment = %s\n", $self->comment());
 	$s .= sprintf("op = %s\n", (exists($REV_BOOTP_CODES{$self->op()}) && $REV_BOOTP_CODES{$self->op()}) || $self->op());
 	$s .= sprintf("htype = %s\n", (exists($REV_HTYPE_CODES{$self->htype()}) && $REV_HTYPE_CODES{$self->htype()}) || $self->htype());
 	$s .= sprintf("hlen = %s\n", $self->hlen());
@@ -325,7 +368,7 @@ sub toString {
 			elsif ($form eq 'inet')   { $value = unpackinet($raw_value) }
 			elsif ($form eq 'inets')  { $value = unpackinets($raw_value) }
 			elsif ($form eq 'hex')    { $value = unpack("H*", $raw_value) }
-			elsif ($form eq 'opt')		{ $value = $raw_value }		# to be completed
+			elsif ($form eq 'opt')		{ $value = unpackRelayAgent($self->decodeRelayAgent($raw_value)) }
 			elsif ($form eq 'byte')		{ $value = unpack("C", $raw_value) }
 			elsif ($form eq 'short')	{ $value = unpack("n", $raw_value) }
 			elsif ($form eq 'int')    { $value = unpack("N", $raw_value) }
@@ -356,6 +399,11 @@ sub packinets($) {		# multiple ip addresses, space delimited
 
 sub unpackinets($) {	# multiple ip addresses
 	return join(" ", map(join('.', unpack('C4', $_)), unpack("(a4)*", shift)));
+}
+
+sub unpackRelayAgent(%) { # prints a human readable 'relay agent options'
+	my %relay_opt = @_;
+	return join(",", map { "($_)=".$relay_opt{$_} } (sort keys %relay_opt));
 }
 
 #=======================================================================
