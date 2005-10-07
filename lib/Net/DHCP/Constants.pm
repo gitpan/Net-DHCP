@@ -4,11 +4,11 @@
 package Net::DHCP::Constants;
 
 # standard module declaration
-use 5.8.0;
+use 5.6.0;
 use strict;
 our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS, $VERSION);
 use Exporter;
-$VERSION = 0.60;
+$VERSION = 0.62;
 @ISA = qw(Exporter);
 
 @EXPORT = qw(MAGIC_COOKIE);
@@ -29,7 +29,7 @@ our (%HTYPE_CODES, %REV_HTYPE_CODES);
             %BOOTP_CODES %REV_BOOTP_CODES
             %HTYPE_CODES %REV_HTYPE_CODES
             )],
-  dhcp_other => [ qw(MAGIC_COOKIE DHCP_UDP_OVERHEAD DHCP_MAX_MTU BOOTP_MIN_LEN DHCP_MIN_LEN)]
+  dhcp_other => [ qw(MAGIC_COOKIE DHCP_UDP_OVERHEAD DHCP_MAX_MTU BOOTP_MIN_LEN BOOTP_ABSOLUTE_MIN_LEN DHCP_MIN_LEN)]
   );
 
 @EXPORT_OK = qw(
@@ -49,6 +49,7 @@ use constant MAGIC_COOKIE => "\x63\x82\x53\x63";
 
 use constant DHCP_UDP_OVERHEAD => (14 + 20 + 8);  # Ethernet + IP + UDP
 use constant DHCP_MAX_MTU => 1500;
+use constant BOOTP_ABSOLUTE_MIN_LEN => 236;
 use constant BOOTP_MIN_LEN => 300;
 use constant DHCP_MIN_LEN => 548;
 

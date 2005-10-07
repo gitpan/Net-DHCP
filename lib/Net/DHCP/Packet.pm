@@ -5,11 +5,11 @@
 package Net::DHCP::Packet;
 
 # standard module declaration
-use 5.8.0;
+use 5.6.0;
 use strict;
 our (@ISA, @EXPORT, @EXPORT_OK, $VERSION);
 use Exporter;
-$VERSION = 0.60;
+$VERSION = 0.62;
 @ISA = qw(Exporter);
 @EXPORT = qw( packinet packinets unpackinet unpackinets );
 @EXPORT_OK = qw( );
@@ -53,7 +53,10 @@ sub new {
     # TBM add DHCP option parsing
     while (defined(my $key = shift(@ordered_args))) {
       my $value = shift(@ordered_args);
-      next unless looks_like_number($key);      # skip non-numerical keys
+      {
+      no warnings;
+      next if ($key != (0 + $key));
+      }
       $self->addOptionValue($key, $value);
     }
   }
@@ -412,8 +415,11 @@ sub marshall {
   my ($self, $buf) = @_;
   my $opt_buf;
   
+  if (length($buf) < BOOTP_ABSOLUTE_MIN_LEN()) {
+    croak("marshall: packet too small (".length($buf)."), absolute minimum size is ".BOOTP_ABSOLUTE_MIN_LEN());
+  }
   if (length($buf) < BOOTP_MIN_LEN()) {
-    croak("marshall: packet too small (".length($buf)."), minimum size is ".BOOTP_MIN_LEN());
+    carp("marshall: packet too small (".length($buf)."), minimum size is ".BOOTP_MIN_LEN());
   }
   if (length($buf) > DHCP_MAX_MTU()) {
     croak("marshall: packet too big (".length($buf)."), max MTU size is ".DHCP_MAX_MTU());

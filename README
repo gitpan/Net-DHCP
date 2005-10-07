@@ -1,4 +1,4 @@
-Net-DHCP version 0.60
+Net-DHCP version 0.62
 =====================
 
 1. DESCRIPTION
@@ -18,7 +18,7 @@ and has been deeply reorganized.
 3. PREREQUISITES
 ----------------
 
-Net::DHCP requires Perl 5.8.0 or higher.
+Net::DHCP requires Perl 5.6.0 or higher.
 
 Net::DHCP has been tested with the following:
 
