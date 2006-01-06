@@ -1,4 +1,4 @@
-Net-DHCP version 0.62
+Net-DHCP version 0.63
 =====================
 
 1. DESCRIPTION
@@ -57,7 +57,7 @@ following information:
 COPYRIGHT AND LICENCE
 
 Copyright (C) 2002 by Francis van Dun.
-Copyright (C) 2005 by Stephan Hadinger.
+Copyright (C) 2005,2006 by Stephan Hadinger.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.5 or,

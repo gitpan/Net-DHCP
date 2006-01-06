@@ -9,7 +9,7 @@ use 5.6.0;
 use strict;
 our (@ISA, @EXPORT, @EXPORT_OK, $VERSION);
 use Exporter;
-$VERSION = 0.62;
+$VERSION = 0.63;
 @ISA = qw(Exporter);
 @EXPORT = qw( packinet packinets unpackinet unpackinets );
 @EXPORT_OK = qw( );
@@ -53,11 +53,14 @@ sub new {
     # TBM add DHCP option parsing
     while (defined(my $key = shift(@ordered_args))) {
       my $value = shift(@ordered_args);
+      my $is_numeric;
       {
-      no warnings;
-      next if ($key != (0 + $key));
+      	no warnings;
+      	$is_numeric = ($key eq (0 + $key));
       }
-      $self->addOptionValue($key, $value);
+      if ($is_numeric) {
+      	$self->addOptionValue($key, $value);
+      }
     }
   }
   return $self;
