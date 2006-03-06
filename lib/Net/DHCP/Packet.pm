@@ -9,7 +9,7 @@ use 5.6.0;
 use strict;
 our (@ISA, @EXPORT, @EXPORT_OK, $VERSION);
 use Exporter;
-$VERSION = 0.63;
+$VERSION = 0.64;
 @ISA = qw(Exporter);
 @EXPORT = qw( packinet packinets unpackinet unpackinets );
 @EXPORT_OK = qw( );
@@ -348,6 +348,20 @@ sub getOptionValue($$) {
 
   return join(" ", @values); 
 #  return wantarray ? @values : $values[0];
+}
+
+sub removeOption {
+  my ($self,$key) = @_;
+  if (exists($self->{options}->{$key})) {
+    my $i;
+    for ($i = 0; $i < @{$self->{options_order}}; $i++) {
+      last if ($self->{options_order}->[$i]);
+    }
+    if ($i < @{$self->{options_order}}) {
+      delete ($self->{options_order}->[$i]);
+    }
+    delete ($self->{options}->{$key});
+  }
 }
 
 #=======================================================================
@@ -894,6 +908,12 @@ I<Removed as of version 0.60. Please use C<getOptionRaw()> instead.>
 
 =back
 
+=item I<removeOption ( CODE )>
+
+Remove option from option list.
+
+=back
+
 =head2 DHCP OPTIONS TYPES
 
 This section describes supported option types (cf. rfc 2132).
@@ -1248,5 +1268,7 @@ Perl itself.
 =head1 SEE ALSO
 
 L<Net::DHCP::Options>, L<Net::DHCP::Constants>.
+
+Note: there is a Java version of this library: L<http://sourceforge.net/projects/dhcp4java>.
 
 =cut

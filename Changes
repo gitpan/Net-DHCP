@@ -1,5 +1,9 @@
 Revision history for Perl extension Net::DHCP.
 
+*** 0.64  Mar 06 2006
+
+Added removeOption() function
+
 *** 0.63  Jan 01 2006
 
 Major bug corrected in Net::DHCP::Packet->new() while parsing

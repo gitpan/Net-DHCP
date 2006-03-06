@@ -1,6 +1,6 @@
 #!/usr/bin/perl -wT
 
-use Test::More tests => 39;
+use Test::More tests => 51;
 
 BEGIN { use_ok( 'Net::DHCP::Packet' ); }
 BEGIN { use_ok( 'Net::DHCP::Constants' ); }
@@ -127,3 +127,31 @@ $pac = Net::DHCP::Packet->new();
 #$pac->addOptionValue(DHO_DHCP_AGENT_OPTIONS(), @relay);
 #my @relay2 = $pac->getOptionValue(DHO_DHCP_AGENT_OPTIONS());
 #is_deeply(\@relay2, \@relay, "testing relays format");
+
+# added removeOption as of version 0.64
+$pac = Net::DHCP::Packet->new();
+$pac->addOptionValue(DHO_DEFAULT_TCP_TTL(), 0x78);
+$pac->addOptionValue(DHO_DHCP_PARAMETER_REQUEST_LIST(),  "1 3 5 254 255");
+$pac->addOptionValue(DHO_TFTP_SERVER(), $foo);
+is($pac->getOptionValue(DHO_TFTP_SERVER()), $foo, "testing option removal");
+is($pac->getOptionValue(DHO_DHCP_PARAMETER_REQUEST_LIST()), '1 3 5 254 255');
+is($pac->getOptionValue(DHO_DEFAULT_TCP_TTL()), 0x78);
+# now remove one middle one
+$pac->removeOption(DHO_DHCP_PARAMETER_REQUEST_LIST());
+is($pac->getOptionValue(DHO_TFTP_SERVER()), $foo);
+is($pac->getOptionRaw(DHO_DHCP_PARAMETER_REQUEST_LIST()), undef);
+is($pac->getOptionValue(DHO_DEFAULT_TCP_TTL()), 0x78);
+# remove again and undefs
+$pac->removeOption(DHO_DHCP_PARAMETER_REQUEST_LIST());
+$pac->removeOption(DHO_STATIC_ROUTES());
+# remove first value
+$pac->removeOption(DHO_TFTP_SERVER());
+is($pac->getOptionRaw(DHO_TFTP_SERVER()), undef);
+is($pac->getOptionRaw(DHO_DHCP_PARAMETER_REQUEST_LIST()), undef);
+is($pac->getOptionValue(DHO_DEFAULT_TCP_TTL()), 0x78);
+# remove last
+$pac->removeOption(DHO_DEFAULT_TCP_TTL());
+is($pac->getOptionRaw(DHO_TFTP_SERVER()), undef);
+is($pac->getOptionRaw(DHO_DHCP_PARAMETER_REQUEST_LIST()), undef);
+is($pac->getOptionRaw(DHO_DEFAULT_TCP_TTL()), undef);
+
