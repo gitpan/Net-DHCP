@@ -8,5 +8,4 @@ $sock = IO::Socket::INET->new(LocalPort => 67, Proto => "udp", Broadcast => 1)
 while ($sock->recv($newmsg, 1024)) {
     $packet = Net::DHCP::Packet->new($newmsg);
     print STDERR $packet->toString();
-    flush;
 }

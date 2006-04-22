@@ -9,7 +9,7 @@ use 5.6.0;
 use strict;
 our (@ISA, @EXPORT, @EXPORT_OK, $VERSION);
 use Exporter;
-$VERSION = 0.64;
+$VERSION = 0.65;
 @ISA = qw(Exporter);
 @EXPORT = qw( packinet packinets unpackinet unpackinets );
 @EXPORT_OK = qw( );
@@ -1250,6 +1250,10 @@ Sending a LEASEQUERY (provided by John A. Murphy).
   $handle->recv($newmsg, 1024) or die;
   $packet = Net::DHCP::Packet->new($newmsg);
   print $packet->toString();
+
+A simple DHCP Server is provided in the "examples" directory. It is composed of
+"dhcpd.pl" a *very* simple server example, and "dhcpd_test.pl" a simple tester for
+this server.
 
 =head1 AUTHOR
 

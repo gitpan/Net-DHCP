@@ -8,7 +8,7 @@ use 5.6.0;
 use strict;
 our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS, $VERSION);
 use Exporter;
-$VERSION = 0.64;
+$VERSION = 0.65;
 @ISA = qw(Exporter);
 
 @EXPORT = qw(MAGIC_COOKIE);

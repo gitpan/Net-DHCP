@@ -5,11 +5,12 @@ use IO::Socket::INET;
 use Net::DHCP::Packet;
 use Net::DHCP::Constants;
 
-# creat DHCP Packet
+# create DHCP Packet
 $discover = Net::DHCP::Packet->new(
                       xid => int(rand(0xFFFFFFFF)), # random xid
                       Flags => 0x8000,              # ask for broadcast answer
-                      DHO_DHCP_MESSAGE_TYPE() => DHCPDISCOVER()
+                      DHO_DHCP_MESSAGE_TYPE() => DHCPDISCOVER(),
+                      DHO_VENDOR_CLASS_IDENTIFIER() => 'foo',
                       );
 
 # send packet
