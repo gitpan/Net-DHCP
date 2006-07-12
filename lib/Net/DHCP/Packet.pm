@@ -5,11 +5,11 @@
 package Net::DHCP::Packet;
 
 # standard module declaration
-use 5.6.0;
+use 5.8.0;
 use strict;
 our (@ISA, @EXPORT, @EXPORT_OK, $VERSION);
 use Exporter;
-$VERSION = 0.65;
+$VERSION = 0.66;
 @ISA = qw(Exporter);
 @EXPORT = qw( packinet packinets unpackinet unpackinets );
 @EXPORT_OK = qw( );
@@ -355,10 +355,10 @@ sub removeOption {
   if (exists($self->{options}->{$key})) {
     my $i;
     for ($i = 0; $i < @{$self->{options_order}}; $i++) {
-      last if ($self->{options_order}->[$i]);
+      last if ($self->{options_order}->[$i] == $key);
     }
     if ($i < @{$self->{options_order}}) {
-      delete ($self->{options_order}->[$i]);
+      splice @{$self->{options_order}},$i,1;
     }
     delete ($self->{options}->{$key});
   }
@@ -1273,6 +1273,6 @@ Perl itself.
 
 L<Net::DHCP::Options>, L<Net::DHCP::Constants>.
 
-Note: there is a Java version of this library: L<http://sourceforge.net/projects/dhcp4java>.
+Note: there is a Java version of this library: L<http://dhcp4java.sourceforge.net/>.
 
 =cut
