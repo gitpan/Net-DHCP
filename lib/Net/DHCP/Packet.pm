@@ -1,6 +1,6 @@
 # Net::DHCP::Packet.pm
-# Original Author: F. van Dun
-# Author : S. Hadinger
+# Original Author: F. van Dun, S. Hadinger
+# Author : D. Hamstead
 
 package Net::DHCP::Packet;
 
@@ -9,7 +9,7 @@ use 5.8.0;
 use strict;
 our (@ISA, @EXPORT, @EXPORT_OK, $VERSION);
 use Exporter;
-$VERSION = 0.66;
+$VERSION = 0.67;
 @ISA = qw(Exporter);
 @EXPORT = qw( packinet packinets unpackinet unpackinets );
 @EXPORT_OK = qw( );
@@ -441,6 +441,12 @@ sub marshall {
   if (length($buf) > DHCP_MAX_MTU()) {
     croak("marshall: packet too big (".length($buf)."), max MTU size is ".DHCP_MAX_MTU());
   }
+
+  # if we are re-using this object, then we need to clear out these arrays
+  delete $self->{options}
+      if $self->{options};
+  delete $self->{options_order}
+      if $self->{options_order};
   
   (
   $self->{op},
@@ -1262,7 +1268,7 @@ Original version by F. van Dun.
 
 =head1 BUGS
 
-Fully tested on windows platforms (2000/XP). Not yet tested on Unix platform.
+See L<https://rt.cpan.org/Dist/Display.html?Queue=Net-DHCP>
 
 =head1 COPYRIGHT
 

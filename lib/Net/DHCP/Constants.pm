@@ -8,7 +8,7 @@ use 5.8.0;
 use strict;
 our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS, $VERSION);
 use Exporter;
-$VERSION = 0.66;
+$VERSION = 0.67;
 @ISA = qw(Exporter);
 
 @EXPORT = qw(MAGIC_COOKIE);
@@ -167,7 +167,8 @@ BEGIN {
     'DHCPINFORM'        => 8,
     'DHCPFORCERENEW'    => 9,
     
-    'DHCPLEASEQUERY'    => 13,   # Cisco extension, draft-ietf-dhc-leasequery-08.txt
+    # 'DHCPLEASEQUERY'    => 13,   # Cisco extension, draft-ietf-dhc-leasequery-08.txt
+    'DHCPLEASEQUERY'    => 10,   # This is now ratified in RFC4388. If you have an old crappy CMTS you can comment this line and uncomment the above line.
     );
 }
 
@@ -343,7 +344,7 @@ Import all DHCP Message codes.
   (07) DHCPRELEASE
   (08) DHCPINFORM
   (09) DHCPFORCERENEW
-  (13) DHCPLEASEQUERY       # draft-ietf-dhc-leasequery-08.txt
+  (10) DHCPLEASEQUERY
 
 =item * dho_codes
 

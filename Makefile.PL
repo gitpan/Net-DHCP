@@ -9,6 +9,6 @@ WriteMakefile(
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
       (
 #       ABSTRACT_FROM  => 'lib/Net/DHCP.pm', # retrieve abstract from module
-       AUTHOR         => 'Stephan Hadinger <shadinger@cpan.org>',
+       AUTHOR         => 'Dean Hamstead <djzort@cpan.org>',
       ) : ()),
 );
