@@ -1,6 +1,7 @@
+#!/bin/false`
 # Net::DHCP::Packet.pm
-# Original Author: F. van Dun, S. Hadinger
 # Author : D. Hamstead
+# Original Author: F. van Dun, S. Hadinger
 
 package Net::DHCP::Packet;
 
@@ -9,7 +10,7 @@ use 5.8.0;
 use strict;
 our ( @ISA, @EXPORT, @EXPORT_OK, $VERSION );
 use Exporter;
-$VERSION   = 0.67_1;
+$VERSION   = 0.67_2;
 @ISA       = qw(Exporter);
 @EXPORT    = qw( packinet packinets unpackinet unpackinets );
 @EXPORT_OK = qw( );
@@ -28,67 +29,123 @@ sub new {
         options       => {},    # DHCP options
         options_order => []     # order in which the options were added
     };
+
     bless $self, $class;
     if ( scalar @_ == 1 ) {     # we build the packet from a binary string
         $self->marshall(shift);
     }
     else {
+
         my %args         = @_;
         my @ordered_args = @_;
-        exists( $args{Comment} )
-          ? $self->comment( $args{Comment} )
-          : $self->{comment} = undef;
-        exists( $args{Op} ) ? $self->op( $args{Op} ) : $self->{op} =
-          BOOTREQUEST();
-        exists( $args{Htype} ) ? $self->htype( $args{Htype} ) : $self->{htype} =
-          1;                    # 10mb ethernet
-        exists( $args{Hlen} ) ? $self->hlen( $args{Hlen} ) : $self->{hlen} =
-          6;                    # Use 6 bytes MAC
-        exists( $args{Hops} ) ? $self->hops( $args{Hops} ) : $self->{hops} = 0;
-        exists( $args{Xid} ) ? $self->xid( $args{Xid} ) : $self->{xid} =
-          0x12345678;
-        exists( $args{Secs} ) ? $self->secs( $args{Secs} ) : $self->{secs} = 0;
-        exists( $args{Flags} ) ? $self->flags( $args{Flags} ) : $self->{flags} =
-          0;
-        exists( $args{Ciaddr} )
-          ? $self->ciaddr( $args{Ciaddr} )
-          : $self->{ciaddr} = "\0\0\0\0";
-        exists( $args{Yiaddr} )
-          ? $self->yiaddr( $args{Yiaddr} )
-          : $self->{yiaddr} = "\0\0\0\0";
-        exists( $args{Siaddr} )
-          ? $self->siaddr( $args{Siaddr} )
-          : $self->{siaddr} = "\0\0\0\0";
-        exists( $args{Giaddr} )
-          ? $self->giaddr( $args{Giaddr} )
-          : $self->{giaddr} = "\0\0\0\0";
-        exists( $args{Chaddr} )
-          ? $self->chaddr( $args{Chaddr} )
-          : $self->{chaddr} = q||;
-        exists( $args{Sname} ) ? $self->sname( $args{Sname} ) : $self->{sname} =
-          q||;
-        exists( $args{File} ) ? $self->file( $args{File} ) : $self->{file} = q||;
-        exists( $args{Padding} )
-          ? $self->padding( $args{Padding} )
-          : $self->{padding} = q||;
-        exists( $args{IsDhcp} )
-          ? $self->isDhcp( $args{IsDhcp} )
-          : $self->{isDhcp} = 1;
+
+        if ( exists $args{Comment} ) {
+            $self->comment( $args{Comment} );
+        }
+        else {
+            $self->{comment} = undef;
+        }
+
+        if ( exists $args{Op} ) {
+            $self->op( $args{Op} );
+        }
+        else { $self->{op} = BOOTREQUEST(); }
+
+        if ( exists $args{Htype} ) { $self->htype( $args{Htype} ) }
+        else {
+            $self->{htype} = 1;    # 10mb ethernet
+        }
+
+        if ( exists $args{Hlen} ) {
+            $self->hlen( $args{Hlen} );
+        }
+        else {
+            $self->{hlen} = 6;     # Use 6 bytes MAC
+        }
+
+        if ( exists $args{Hops} ) {
+            $self->hops( $args{Hops} );
+        }
+        else { $self->{hops} = 0; }
+
+        if ( exists $args{Xid} ) {
+            $self->xid( $args{Xid} );
+        }
+        else { $self->{xid} = 0x12345678; }
+
+        if ( exists $args{Secs} ) {
+            $self->secs( $args{Secs} );
+        }
+        else { $self->{secs} = 0; }
+
+        if ( exists $args{Flags} ) {
+            $self->flags( $args{Flags} );
+        }
+        else { $self->{flags} = 0; }
+
+        if ( exists $args{Ciaddr} ) {
+            $self->ciaddr( $args{Ciaddr} );
+        }
+        else { $self->{ciaddr} = "\0\0\0\0"; }
+
+        if ( exists $args{Yiaddr} ) {
+            $self->yiaddr( $args{Yiaddr} );
+        }
+        else { $self->{yiaddr} = "\0\0\0\0"; }
+
+        if ( exists $args{Siaddr} ) {
+            $self->siaddr( $args{Siaddr} );
+        }
+        else { $self->{siaddr} = "\0\0\0\0"; }
+
+        if ( exists $args{Giaddr} ) {
+            $self->giaddr( $args{Giaddr} );
+        }
+        else { $self->{giaddr} = "\0\0\0\0"; }
+
+        if ( exists $args{Chaddr} ) {
+            $self->chaddr( $args{Chaddr} );
+        }
+        else { $self->{chaddr} = q||; }
+
+        if ( exists $args{Sname} ) {
+            $self->sname( $args{Sname} );
+        }
+        else { $self->{sname} = q||; }
+
+        if ( exists $args{File} ) {
+            $self->file( $args{File} );
+        }
+        else { $self->{file} = q||; }
+
+        if ( exists $args{Padding} ) {
+            $self->padding( $args{Padding} );
+        }
+        else { $self->{padding} = q||; }
+
+        if ( exists $args{IsDhcp} ) {
+            $self->isDhcp( $args{IsDhcp} );
+        }
+        else { $self->{isDhcp} = 1; }
 
         # TBM add DHCP option parsing
-        while ( defined( my $key = shift(@ordered_args) ) ) {
-            my $value = shift(@ordered_args);
+        while ( defined( my $key = shift @ordered_args ) ) {
+
+            my $value = shift @ordered_args;
             my $is_numeric;
             {
                 no warnings;
                 $is_numeric = ( $key eq ( 0 + $key ) );
             }
+
             if ($is_numeric) {
                 $self->addOptionValue( $key, $value );
             }
         }
     }
-    return $self;
+
+    return $self
+
 }
 
 #=======================================================================
@@ -270,10 +327,6 @@ sub padding {
 }
 
 #=======================================================================
-#sub addOption {               # deprecated
-#  my $self = shift;
-#  return $self->addOptionRaw(@_);
-#}
 
 sub addOptionRaw {
     my ( $self, $key, $value_bin ) = @_;
@@ -285,16 +338,22 @@ sub addOptionValue {
     my $self  = shift;
     my $code  = shift;    # option code
     my $value = shift;
-    my $value_bin;        # option value in binary format
+
+    # my $value_bin;        # option value in binary format
 
     carp("addOptionValue: unknown format for code ($code)")
-      unless exists( $DHO_FORMATS{$code} );
+      unless exists $DHO_FORMATS{$code};
 
     my $format = $DHO_FORMATS{$code};
 
+    if ( $format eq 'suboption' ) {
+        carp 'Use addSubOptionValue to add sub options';
+        return;
+    }
+
     # decompose input value into an array
     my @values;
-    if ( defined $value &&  $value ne q|| ) {
+    if ( defined $value && $value ne q|| ) {
         @values =
           split( /[\s\/,;]+/, $value );    # array of values, split by space
     }
@@ -319,36 +378,126 @@ sub addOptionValue {
 
     my %options = (
 
-      inet    => sub { return packinet(shift) },
-      inets   => sub { return packinets_array(@_) },
-      inets2  => sub { return packinets_array(@_) },
-      int     => sub { return pack('N', shift) },
-      short   => sub { return pack('n', shift) },
-      byte    => sub { return pack('C', 255 & shift) }, # 255 & trims the input to single octet
-      bytes   => sub { return pack('C*', map {255 & $_} @_) },
-      string  => sub { return shift },
+        inet   => sub { return packinet(shift) },
+        inets  => sub { return packinets_array(@_) },
+        inets2 => sub { return packinets_array(@_) },
+        int    => sub { return pack( 'N', shift ) },
+        short  => sub { return pack( 'n', shift ) },
+        byte   => sub { return pack( 'C', 255 & shift ) }
+        ,    # 255 & trims the input to single octet
+        bytes => sub {
+            return pack( 'C*', map { 255 & $_ } @_ );
+        },
+        string => sub { return shift },
 
     );
 
-        #  } elsif ($format eq 'relays') {
-        #    $value_bin = $self->encodeRelayAgent(@values);
-        #  } elsif ($format eq 'ids') {
-        #    $value_bin = $values[0];
-        #    # TBM bad format
-
+    #  } elsif ($format eq 'relays') {
+    #    $value_bin = $self->encodeRelayAgent(@values);
+    #  } elsif ($format eq 'ids') {
+    #    $value_bin = $values[0];
+    #    # TBM bad format
 
     # decode the option if we know how, otherwise use the original value
-    $self->addOptionRaw( $code,
-                         $options{$format} ? $options{$format}->(@values)
-                                           : $value
-                        );
+    $self->addOptionRaw( $code, $options{$format}
+        ? $options{$format}->(@values)
+        : $value );
 
+}    # end AddOptionValue
+
+sub addSubOptionRaw {
+    my ( $self, $key, $subkey, $value_bin ) = @_;
+    $self->{options}->{$key}->{$subkey} = $value_bin;
+
+    push @{ $self->{sub_options_order}{$subkey} }, ($key);
+}
+
+sub addSubOptionValue {
+
+    my $self    = shift;
+    my $code    = shift;    # option code
+    my $subcode = shift;    # sub option code
+    my $value   = shift;
+    my $value_bin;          # option value in binary format
+
+    # FIXME
+    carp("addSubOptionValue: unknown format for code ($code)")
+      unless exists $DHO_FORMATS{$code};
+
+    carp("addSubOptionValue: not a suboption parameter for code ($code)")
+      unless ( $DHO_FORMATS{$code} eq 'suboptions' );
+
+    carp(
+"addSubOptionValue: unknown format for subcode ($subcode) on code ($code)"
+    ) unless ( $DHO_FORMATS{$code} eq 'suboptions' );
+
+    carp("addSubOptionValue: no suboptions defined for code ($code)?")
+      unless exists $SUBOPTION_CODES{$code};
+
+    carp(
+        "addSubOptionValue: suboption ($subcode) not defined for code ($code)?")
+      unless exists $SUBOPTION_CODES{$code}->{$subcode};
+
+    my $format = $SUBOPTION_CODES{$code}->{$subcode};
+
+    # decompose input value into an array
+    my @values;
+    if ( defined $value && $value ne q|| ) {
+        @values =
+          split( /[\s\/,;]+/, $value );    # array of values, split by space
+    }
+
+    # verify number of parameters
+    if ( $format eq 'string' ) {
+        @values = ($value);                # don't change format
+    }
+    elsif ( $format =~ m/s$/ )
+    {    # ends with an 's', meaning any number of parameters
+        ;
+    }
+    elsif ( $format =~ m/2$/ )
+    {    # ends with a '2', meaning couples of parameters
+        croak(
+"addSubOptionValue: only pairs of values expected for option '$code'"
+        ) if ( ( @values % 2 ) != 0 );
+    }
+    else {    # only one parameter
+        croak(
+            "addSubOptionValue: exactly one value expected for option '$code'")
+          if ( @values != 1 );
+    }
+
+    my %options = (
+        inet   => sub { return packinet(shift) },
+        inets  => sub { return packinets_array(@_) },
+        inets2 => sub { return packinets_array(@_) },
+        int    => sub { return pack( 'N', shift ) },
+        short  => sub { return pack( 'n', shift ) },
+        byte   => sub { return pack( 'C', 255 & shift ) }
+        ,    # 255 & trims the input to single octet
+        bytes => sub {
+            return pack( 'C*', map { 255 & $_ } @_ );
+        },
+        string => sub { return shift },
+    );
+
+    #  } elsif ($format eq 'relays') {
+    #    $value_bin = $self->encodeRelayAgent(@values);
+    #  } elsif ($format eq 'ids') {
+    #    $value_bin = $values[0];
+    #    # TBM bad format
+
+    # decode the option if we know how, otherwise use the original value
+    $self->addOptionRaw( $code, $options{$format}
+        ? $options{$format}->(@values)
+        : $value );
 
 }
 
 sub getOptionRaw {
     my ( $self, $key ) = @_;
-    return $self->{options}->{$key} if exists( $self->{options}->{$key} );
+    return $self->{options}->{$key}
+      if exists( $self->{options}->{$key} );
     return;
 }
 
@@ -369,45 +518,120 @@ sub getOptionValue {
 
     # hash out these options for speed and sanity
     my %options = (
-         inet   => sub { return unpackinets_array(shift) },
-         inets  => sub { return unpackinets_array(shift) },
-         inets2 => sub { return unpackinets_array(shift) },
-         int    => sub { return unpack( 'N', shift ) },
-         short  => sub { return unpack( 'n', shift ) },
-         shorts => sub { return unpack( 'n*', shift ) },
-         byte   => sub { return unpack( 'C', shift ) },
-         bytes  => sub { return unpack( 'C*', shift ) },
-         string => sub { return shift },
+        inet   => sub { return unpackinets_array(shift) },
+        inets  => sub { return unpackinets_array(shift) },
+        inets2 => sub { return unpackinets_array(shift) },
+        int    => sub { return unpack( 'N', shift ) },
+        short  => sub { return unpack( 'n', shift ) },
+        shorts => sub { return unpack( 'n*', shift ) },
+        byte   => sub { return unpack( 'C', shift ) },
+        bytes  => sub { return unpack( 'C*', shift ) },
+        string => sub { return shift },
+
     );
 
-        #  } elsif ($format eq 'relays') {
-        #    @values = $self->decodeRelayAgent($value_bin);
-        #    # TBM, bad format
-        #  } elsif ($format eq 'ids') {
-        #    $values[0] = $value_bin;
-        #    # TBM, bad format
+    #  } elsif ($format eq 'relays') {
+    #    @values = $self->decodeRelayAgent($value_bin);
+    #    # TBM, bad format
+    #  } elsif ($format eq 'ids') {
+    #    $values[0] = $value_bin;
+    #    # TBM, bad format
 
     # decode the options if we know the format
     return join( q| |, $options{$format}->($value_bin) )
-        if $options{$format};
+      if $options{$format};
 
     # if we cant work out the format
-    return $value_bin;
+    return $value_bin
 
+}    # getOptionValue
+
+sub getSubOptionRaw {
+    my ( $self, $key, $subkey ) = @_;
+    return $self->{options}->{$key}->{$subkey}
+      if exists( $self->{options}->{$key}->{$subkey} );
+    return;
 }
+
+sub getSubOptionValue {
+
+    # FIXME
+    #~ my $self = shift;
+    #~ my $code = shift;
+    #~
+    #~ carp("getOptionValue: unknown format for code ($code)")
+    #~ unless exists( $DHO_FORMATS{$code} );
+    #~
+    #~ my $format = $DHO_FORMATS{$code};
+    #~
+    #~ my $value_bin = $self->getOptionRaw($code);
+    #~
+    #~ return unless defined $value_bin;
+    #~
+    #~ my @values;
+    #~
+    #~ # hash out these options for speed and sanity
+    #~ my %options = (
+    #~ inet   => sub { return unpackinets_array(shift) },
+    #~ inets  => sub { return unpackinets_array(shift) },
+    #~ inets2 => sub { return unpackinets_array(shift) },
+    #~ int    => sub { return unpack( 'N', shift ) },
+    #~ short  => sub { return unpack( 'n', shift ) },
+    #~ shorts => sub { return unpack( 'n*', shift ) },
+    #~ byte   => sub { return unpack( 'C', shift ) },
+    #~ bytes  => sub { return unpack( 'C*', shift ) },
+    #~ string => sub { return shift },
+    #~
+    #~ );
+    #~
+    #~ #  } elsif ($format eq 'relays') {
+    #~ #    @values = $self->decodeRelayAgent($value_bin);
+    #~ #    # TBM, bad format
+    #~ #  } elsif ($format eq 'ids') {
+    #~ #    $values[0] = $value_bin;
+    #~ #    # TBM, bad format
+    #~
+    #~ # decode the options if we know the format
+    #~ return join( q| |, $options{$format}->($value_bin) )
+    #~ if $options{$format};
+    #~
+    #~ # if we cant work out the format
+    #~ return $value_bin
+
+}    # getSubOptionValue
 
 sub removeOption {
     my ( $self, $key ) = @_;
     if ( exists( $self->{options}->{$key} ) ) {
-        my $i = first { $self->{options_order}->[$_] == $key } 0..$#{ $self->{options_order} };
-#        for ( $i = 0 ; $i < @{ $self->{options_order} } ; $i++ ) {
-#            last if ( $self->{options_order}->[$i] == $key );
-#        }
+        my $i =
+          first { $self->{options_order}->[$_] == $key }
+        0 .. $#{ $self->{options_order} };
+
+        #        for ( $i = 0 ; $i < @{ $self->{options_order} } ; $i++ ) {
+        #            last if ( $self->{options_order}->[$i] == $key );
+        #        }
         if ( $i < @{ $self->{options_order} } ) {
             splice @{ $self->{options_order} }, $i, 1;
         }
         delete( $self->{options}->{$key} );
     }
+}
+
+sub removeSubOption {
+
+# FIXME
+#~ my ( $self, $key ) = @_;
+#~ if ( exists( $self->{options}->{$key} ) ) {
+#~ my $i = first { $self->{options_order}->[$_] == $key } 0..$#{ $self->{options_order} };
+#~ #        for ( $i = 0 ; $i < @{ $self->{options_order} } ; $i++ ) {
+#~ #            last if ( $self->{options_order}->[$i] == $key );
+#~ #        }
+#~ if ( $i < @{ $self->{options_order} } ) {
+#~ splice @{ $self->{options_order} }, $i, 1;
+#~ }
+#~ delete( $self->{options}->{$key} );
+#~ }
+
 }
 
 #=======================================================================
@@ -429,7 +653,7 @@ sub serialize {
 
     if ( $self->{isDhcp} ) {    # add MAGIC_COOKIE and options
         $bytes .= MAGIC_COOKIE();
-        foreach my $key ( @{ $self->{options_order} } ) {
+        for my $key ( @{ $self->{options_order} } ) {
             $bytes .= pack( 'C',    $key );
             $bytes .= pack( 'C/a*', $self->{options}->{$key} );
         }
@@ -453,8 +677,11 @@ sub serialize {
     }
 
     # test if packet length is not bigger than DHO_DHCP_MAX_MESSAGE_SIZE
-    if ( $options && exists( $options->{ DHO_DHCP_MAX_MESSAGE_SIZE() } ) )
-    {    # maximum packet size is specified
+    if ( $options
+        && exists( $options->{ DHO_DHCP_MAX_MESSAGE_SIZE() } ) )
+    {
+
+        # maximum packet size is specified
         my $max_message_size = $options->{ DHO_DHCP_MAX_MESSAGE_SIZE() };
         if (   ( $max_message_size >= BOOTP_MIN_LEN() )
             && ( $max_message_size < DHCP_MAX_MTU() ) )
@@ -470,11 +697,13 @@ sub serialize {
         }
     }
 
-    return $bytes;
-}
+    return $bytes
+
+}    # end sub serialize
 
 #=======================================================================
 sub marshall {
+
     use bytes;
     my ( $self, $buf ) = @_;
     my $opt_buf;
@@ -524,6 +753,7 @@ sub marshall {
         my $type;
 
         while ( $pos < $total ) {
+
             $type = ord( substr( $opt_buf, $pos++, 1 ) );
             next if ( $type eq DHO_PAD() );  # Skip padding bytes
             last if ( $type eq DHO_END() );  # Type 'FF' signals end of options.
@@ -531,6 +761,7 @@ sub marshall {
             my $option = substr( $opt_buf, $pos, $len );
             $pos += $len;
             $self->addOptionRaw( $type, $option );
+
         }
 
         # verify that we ended with an "END" code
@@ -545,6 +776,7 @@ sub marshall {
         else {
             $self->{padding} = q||;
         }
+
     }
     else {
 
@@ -553,17 +785,20 @@ sub marshall {
 
     }
 
-    return $self;
-}
+    return $self
+
+}    # end sub marshall
 
 #=======================================================================
 sub decodeRelayAgent {
+
     use bytes;
-    my $self      = shift;
+    my $self = shift;
     my ($opt_buf) = @_;
     my @opt;
 
     if ( length($opt_buf) > 1 ) {
+
         my $pos   = 0;
         my $total = length($opt_buf);
 
@@ -574,14 +809,18 @@ sub decodeRelayAgent {
             $pos += $len;
             push @opt, $type, $option;
         }
+
     }
-    return @opt;
+
+    return @opt
+
 }
 
 sub encodeRelayAgent {
+
     use bytes;
     my $self = shift;
-    my @opt;      # expect key-value pairs
+    my @opt;    # expect key-value pairs
     my $buf;
 
     while ( defined( my $key = shift(@opt) ) ) {
@@ -589,7 +828,9 @@ sub encodeRelayAgent {
         $buf .= pack( 'C',    $key );
         $buf .= pack( 'C/a*', $value );
     }
+
     return $buf;
+
 }
 
 #=======================================================================
@@ -630,7 +871,7 @@ sub toString {
     $s .= sprintf( "file = %s\n",  $self->file() );
     $s .= "Options : \n";
 
-    foreach my $key ( @{ $self->{options_order} } ) {
+    for my $key ( @{ $self->{options_order} } ) {
         my $value;    # value of option to be printed
 
         if ( $key == DHO_DHCP_MESSAGE_TYPE() ) {
@@ -660,12 +901,24 @@ sub toString {
         unpack( 'H*', $self->{padding} )
     );
 
-    return $s;
-}
+    return $s
+
+}    # end toString
 
 #=======================================================================
 # internal utility functions
 # never failing versions of the "Socket" module functions
+sub packinet {    # bullet-proof version, never complains
+    use bytes;
+    my $addr = shift;
+
+    if ( $addr && $addr =~ /(\d+)\.(\d+)\.(\d+)\.(\d+)/ ) {
+        return chr($1) . chr($2) . chr($3) . chr($4);
+    }
+
+    return "\0\0\0\0";
+}
+
 sub unpackinet {    # bullet-proof version, never complains
     use bytes;
     my $ip = shift;
@@ -677,19 +930,15 @@ sub unpackinet {    # bullet-proof version, never complains
       . ord( substr( $ip, 3, 1 ) );
 }
 
-sub packinet {      # bullet-proof version, never complains
-    use bytes;
-    my $addr = shift;
-
-    if ( $addr && $addr =~ /(\d+)\.(\d+)\.(\d+)\.(\d+)/ ) {
-        return chr($1) . chr($2) . chr($3) . chr($4);
-    }
-
-    return "\0\0\0\0";
+sub packinets {     # multiple ip addresses, space delimited
+    return join(
+        q(), map { packinet($_) }
+          split( /[\s\/,;]+/, shift || 0 )
+    );
 }
 
-sub packinets {     # multiple ip addresses, space delimited
-    return join( q(), map { packinet($_) } split( /[\s\/,;]+/, shift || 0 ) );
+sub unpackinets {    # multiple ip addresses
+    return join( q| |, map { unpackinet($_) } unpack( "(a4)*", shift || 0 ) );
 }
 
 sub packinets_array {    # multiple ip addresses, space delimited
@@ -697,19 +946,18 @@ sub packinets_array {    # multiple ip addresses, space delimited
     return join( q(), map { packinet($_) } @_ );
 }
 
-sub unpackinets {        # multiple ip addresses
-    return join( q| |, map { unpackinet($_) } unpack( "(a4)*", shift || 0 ) );
-}
-
 sub unpackinets_array {    # multiple ip addresses, returns an array
     return map { unpackinet($_) } unpack( "(a4)*", shift || 0 );
 }
 
 sub unpackRelayAgent {     # prints a human readable 'relay agent options'
+
     my %relay_opt = @_
       or return;
+
     return
-      join( q|,|, map { "($_)=" . $relay_opt{$_} } ( sort keys %relay_opt ) );
+      join( q|,|, map { "($_)=" . $relay_opt{$_} } ( sort keys %relay_opt ) )
+
 }
 
 #=======================================================================
@@ -974,6 +1222,24 @@ If you nedd access to the raw binary values, please use C<addOptionRaw()>.
    $pac->addOption(DHO_DHCP_MESSAGE_TYPE(), DHCPINFORM());
    $pac->addOption(DHO_NAME_SERVERS(), "10.0.0.1", "10.0.0.2"));
 
+=item addSubOptionValue ( CODE, SUBCODE, VALUE )
+
+Adds a DHCP sub-option field. Common code values are listed in
+C<Net::DHCP::Constants> C<SUBOPTION_>*.
+
+Values are automatically converted according to their data types,
+depending on their format as defined by RFC 2132.
+Please see L<DHCP OPTION TYPES> for supported options and corresponding
+formats.
+
+If you nedd access to the raw binary values, please use C<addSubOptionRaw()>.
+
+   $pac = Net::DHCP::Packet->new();
+   # FIXME update exampls
+   $pac->addSubOption(DHO_DHCP_MESSAGE_TYPE(), DHCPINFORM());
+   $pac->addSubOption(DHO_NAME_SERVERS(), "10.0.0.1", "10.0.0.2"));
+
+
 =item getOptionValue ( CODE )
 
 Returns the value of a DHCP option.
@@ -995,9 +1261,19 @@ Return value is either a string or an array, depending on the context.
 Adds a DHCP OPTION provided in packed binary format.
 Please see corresponding RFC for manual type conversion.
 
+=item addSubOptionRaw ( CODE, SUBCODE, VALUE )
+
+Adds a DHCP SUB-OPTION provided in packed binary format.
+Please see corresponding RFC for manual type conversion.
+
 =item getOptionRaw ( CODE )
 
 Gets a DHCP OPTION provided in packed binary format.
+Please see corresponding RFC for manual type conversion.
+
+=item getSubOptionRaw ( CODE, SUBCODE )
+
+Gets a DHCP SUB-OPTION provided in packed binary format.
 Please see corresponding RFC for manual type conversion.
 
 =item removeOption ( CODE )
@@ -1025,7 +1301,7 @@ I<Removed as of version 0.60. Please use C<addOptionRaw()> instead.>
 
 I<Removed as of version 0.60. Please use C<getOptionRaw()> instead.>
 
-=item 
+=item
 
 =back
 
