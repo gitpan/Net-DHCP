@@ -1,16 +1,23 @@
 --- #YAML:1.0
 name:               Net-DHCP
-version:            0.672
-abstract:           ~
+version:            0.68
+abstract:           Object methods to create a DHCP packet.
 author:
     - Dean Hamstead <djzort@cpan.org>
-license:            unknown
+license:            perl
 distribution_type:  module
 configure_requires:
     ExtUtils::MakeMaker:  0
 build_requires:
-    ExtUtils::MakeMaker:  0
-requires:  {}
+    File::Spec:  0
+    Test::More:  0
+    Test::Warn:  0
+requires:
+    Carp:          0
+    Exporter:      0
+    List::Util:    0
+    Scalar::Util:  0
+    Socket:        0
 no_index:
     directory:
         - t
