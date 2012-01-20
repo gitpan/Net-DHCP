@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Net-DHCP
-version:            0.68
+version:            0.681
 abstract:           Object methods to create a DHCP packet.
 author:
     - Dean Hamstead <djzort@cpan.org>
