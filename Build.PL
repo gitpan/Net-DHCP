@@ -20,7 +20,7 @@ my %module_build_args = (
     "Dean Hamstead <dean\@fragfest.com.au>"
   ],
   "dist_name" => "Net-DHCP",
-  "dist_version" => "0.684",
+  "dist_version" => "0.685",
   "license" => "perl",
   "module_name" => "Net::DHCP",
   "recommends" => {},

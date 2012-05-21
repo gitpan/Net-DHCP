@@ -22,4 +22,4 @@ requires:
   List::Util: 0
   Scalar::Util: 0
   Socket: 0
-version: 0.684
+version: 0.685

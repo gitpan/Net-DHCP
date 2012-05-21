@@ -14,7 +14,6 @@ examples/dumpianatoxml.pl
 examples/lease_query.pl
 examples/list_dho.pl
 examples/send_packet.pl
-lib/Net/DHCP.pm
 lib/Net/DHCP/Constants.pm
 lib/Net/DHCP/Packet.pm
 t/00.load.t
