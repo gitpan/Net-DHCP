@@ -4,7 +4,7 @@
       "Dean Hamstead <dean@fragfest.com.au>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Dist::Zilla version 4.300016, CPAN::Meta::Converter version 2.120921",
+   "generated_by" : "Dist::Zilla version 4.300017, CPAN::Meta::Converter version 2.120921",
    "license" : [
       "perl_5"
    ],
@@ -30,7 +30,11 @@
             "Exporter" : "0",
             "List::Util" : "0",
             "Scalar::Util" : "0",
-            "Socket" : "0"
+            "Socket" : "0",
+            "constant" : "0",
+            "perl" : "v5.8.0",
+            "strict" : "0",
+            "warnings" : "0"
          }
       },
       "test" : {
@@ -42,6 +46,6 @@
       }
    },
    "release_status" : "stable",
-   "version" : "0.685"
+   "version" : "0.69"
 }
 

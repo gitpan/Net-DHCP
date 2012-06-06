@@ -20,7 +20,7 @@ my %module_build_args = (
     "Dean Hamstead <dean\@fragfest.com.au>"
   ],
   "dist_name" => "Net-DHCP",
-  "dist_version" => "0.685",
+  "dist_version" => "0.69",
   "license" => "perl",
   "module_name" => "Net::DHCP",
   "recommends" => {},
@@ -30,7 +30,11 @@ my %module_build_args = (
     "Exporter" => 0,
     "List::Util" => 0,
     "Scalar::Util" => 0,
-    "Socket" => 0
+    "Socket" => 0,
+    "constant" => 0,
+    "perl" => "v5.8.0",
+    "strict" => 0,
+    "warnings" => 0
   },
   "script_files" => []
 );
