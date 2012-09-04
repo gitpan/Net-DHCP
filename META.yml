@@ -26,4 +26,4 @@ requires:
   perl: v5.8.0
   strict: 0
   warnings: 0
-version: 0.691
+version: 0.692
