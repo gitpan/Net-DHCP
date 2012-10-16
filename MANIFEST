@@ -6,12 +6,14 @@ META.json
 META.yml
 README
 cpanfile
+dhcp.patch
 dist.ini
 docs/bootp-dhcp-parameters.txt
 examples/dhcp_sniffer.pl
 examples/dhcpd.pl
 examples/dhcpd_test.pl
 examples/dumpianatoxml.pl
+examples/l2tp-dhcp-inform
 examples/lease_query.pl
 examples/list_dho.pl
 examples/send_packet.pl

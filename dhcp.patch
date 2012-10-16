@@ -1,0 +1,122 @@
+diff --git a/lib/Net/DHCP/Constants.pm b/lib/Net/DHCP/Constants.pm
+index ee2e130..53dc4c4 100755
+--- a/lib/Net/DHCP/Constants.pm
++++ b/lib/Net/DHCP/Constants.pm
+@@ -236,6 +236,8 @@ BEGIN {
+         'DHO_SUBNET_ALLOCATION'                    => 220,
+         'DHO_VIRTUAL_SUBNET'                       => 221,
+ 
++        'DHO_CLASSLESS_STATIC_ROUTE_MS'            => 249,
++
+         'DHO_END' => 255
+     );
+ 
+@@ -352,6 +354,7 @@ use constant \%RELAYAGENT_CODES;
+ #   string : char* (just kidding)
+ #   relays : DHCP sub-options (rfc 3046)
+ #   ids : client identifier : byte (htype) + string (chaddr)
++#   csr : classless static routes (rfc 3442)
+ #   suboptions : hex encoded sub options
+ #
+ our %DHO_FORMATS = (
+@@ -449,6 +452,8 @@ our %DHO_FORMATS = (
+     DHO_NAME_SERVICE_SEARCH()          => 'shorts',    # rfc 2937
+     DHO_SUBNET_SELECTION()             => 'inet',      # rfc 3011
+ 
++    DHO_CLASSLESS_STATIC_ROUTE()      => 'csr',        # rfc 3442
++    DHO_CLASSLESS_STATIC_ROUTE_MS()   => 'csr',
+ );
+ 
+ # Links option codes with their suboption values
+@@ -671,6 +676,7 @@ Import all DHCP option codes.
+   (213) DHO_OPTION_V4_ACCESS_DOMAIN
+   (220) DHO_SUBNET_ALLOCATION
+   (221) DHO_VIRTUAL_SUBNET
++  (249) DHO_CLASSLESS_STATIC_ROUTE_MS
+   (255) DHO_END
+ 
+ =item * ccc_codes
+diff --git a/lib/Net/DHCP/Packet.pm b/lib/Net/DHCP/Packet.pm
+index f0f6259..f67caf0 100755
+--- a/lib/Net/DHCP/Packet.pm
++++ b/lib/Net/DHCP/Packet.pm
+@@ -361,7 +361,7 @@ sub addOptionValue {
+     }
+ 
+     # verify number of parameters
+-    if ( $format eq 'string' ) {
++    if ( $format eq 'string' || $format eq 'csr' ) {
+         @values = ($value);                # don't change format
+     }
+     elsif ( $format =~ /s$/ )
+@@ -391,6 +391,7 @@ sub addOptionValue {
+             return pack( 'C*', map { 255 & $_ } @_ );
+         },
+         string => sub { return shift },
++        csr    => sub { return packcsr(shift) },
+ 
+     );
+ 
+@@ -529,6 +530,7 @@ sub getOptionValue {
+         byte   => sub { return unpack( 'C', shift ) },
+         bytes  => sub { return unpack( 'C*', shift ) },
+         string => sub { return shift },
++        csr    => sub { return unpackcsr(shift) },
+ 
+     );
+ 
+@@ -656,8 +658,15 @@ sub serialize {
+     if ( $self->{isDhcp} ) {    # add MAGIC_COOKIE and options
+         $bytes .= MAGIC_COOKIE();
+         for my $key ( @{ $self->{options_order} } ) {
+-            $bytes .= pack( 'C',    $key );
+-            $bytes .= pack( 'C/a*', $self->{options}->{$key} );
++            if ( ref($self->{options}->{$key}) eq 'ARRAY' ) {
++                for my $value ( @{$self->{options}->{$key}} ) {
++                    $bytes .= pack( 'C',    $key );
++                    $bytes .= pack( 'C/a*', $value );
++                }
++            } else {
++                $bytes .= pack( 'C',    $key );
++                $bytes .= pack( 'C/a*', $self->{options}->{$key} );
++            }
+         }
+         $bytes .= pack( 'C', 255 );
+     }
+@@ -962,6 +971,36 @@ sub unpackRelayAgent {     # prints a human readable 'relay agent options'
+ 
+ }
+ 
++sub packcsr {
++    # catch empty value
++    my $results = [ '' ];
++
++    for my $pair ( @{$_[0]} ) {
++        push @$results, ''
++        	if (length($results->[-1]) > 255 - 8);
++
++        my ($ip, $mask) = split /\//, $pair->[0];
++        $mask = '32'
++		unless (defined($mask));
++
++        my $addr = packinet($ip);
++        $addr = substr $addr, 0, int(($mask - 1)/8 + 1);
++
++        $results->[-1] .= pack('C', $mask) . $addr;
++        $results->[-1] .= packinet($pair->[1]);
++    }
++
++    return $results;
++}
++
++sub unpackcsr {
++    my $csr = shift
++      or return;
++
++   croak('unpack csr field still WIP');
++
++}
++
+ #=======================================================================
+ 
+ 1;
