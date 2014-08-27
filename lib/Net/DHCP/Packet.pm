@@ -12,7 +12,7 @@ use warnings;
 
 our ( @ISA, @EXPORT, @EXPORT_OK, $VERSION );
 use Exporter;
-$VERSION   = 0.693;
+$VERSION   = 0.694;
 @ISA       = qw(Exporter);
 @EXPORT    = qw( packinet packinets unpackinet unpackinets );
 @EXPORT_OK = qw( );
@@ -364,11 +364,11 @@ sub addOptionValue {
     if ( $format eq 'string' || $format eq 'csr' ) {
         @values = ($value);                # don't change format
     }
-    elsif ( $format =~ /s$/ )
+    elsif ( $format =~ m/s$/ )
     {    # ends with an 's', meaning any number of parameters
         ;
     }
-    elsif ( $format =~ /2$/ ) { # ends with a '2', meaning couples of parameters
+    elsif ( $format =~ m/2$/ ) { # ends with a '2', meaning couples of parameters
         croak(
             "addOptionValue: only pairs of values expected for option '$code'")
           if ( ( @values % 2 ) != 0 );
@@ -981,7 +981,7 @@ sub packcsr {
 
         my ($ip, $mask) = split /\//, $pair->[0];
         $mask = '32'
-		unless (defined($mask));
+                unless (defined($mask));
 
         my $addr = packinet($ip);
         $addr = substr $addr, 0, int(($mask - 1)/8 + 1);
@@ -1342,6 +1342,14 @@ These are half baked, but will decode the relay agent options in the future
 returns a human readable 'relay agent options', not to be confused with
 C<decodeRelayAgent>
 
+=item I packcsr( ARRAYREF )
+
+returns the packed Classless Static Route option built from a list of cidr style address/mask combos
+
+=item I<unpackcsr>
+
+Not implemented, currently croaks.
+
 =item I<addOption ( CODE, VALUE )>
 
 I<Removed as of version 0.60. Please use C<addOptionRaw()> instead.>
@@ -1349,8 +1357,6 @@ I<Removed as of version 0.60. Please use C<addOptionRaw()> instead.>
 =item I<getOption ( CODE )>
 
 I<Removed as of version 0.60. Please use C<getOptionRaw()> instead.>
-
-=item
 
 =back
 
@@ -1713,6 +1719,12 @@ Original version by F. van Dun.
 =head1 BUGS
 
 See L<https://rt.cpan.org/Dist/Display.html?Queue=Net-DHCP>
+
+=head1 GOT PATCHES?
+
+Many young people like to use Github, so by all means send me pull requests at
+
+https://github.com/djzort/NetAddr-MAC
 
 =head1 COPYRIGHT
 

@@ -9,7 +9,7 @@ requires "strict" => "0";
 requires "warnings" => "0";
 
 on 'build' => sub {
-  requires "Module::Build" => "0.3601";
+  requires "Module::Build" => "0.28";
 };
 
 on 'test' => sub {
@@ -19,5 +19,13 @@ on 'test' => sub {
 };
 
 on 'configure' => sub {
-  requires "Module::Build" => "0.3601";
+  requires "Module::Build" => "0.28";
+};
+
+on 'develop' => sub {
+  requires "Pod::Coverage::TrustPod" => "0";
+  requires "Test::CPAN::Meta" => "0";
+  requires "Test::Kwalitee" => "1.12";
+  requires "Test::Pod" => "1.41";
+  requires "Test::Pod::Coverage" => "1.08";
 };
