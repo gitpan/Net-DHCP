@@ -4,7 +4,7 @@
       "Dean Hamstead <dean@bytefoundry.com.au>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Dist::Zilla version 5.020, CPAN::Meta::Converter version 2.142060",
+   "generated_by" : "Dist::Zilla version 5.020, CPAN::Meta::Converter version 2.142690",
    "license" : [
       "perl_5"
    ],
@@ -55,6 +55,6 @@
       }
    },
    "release_status" : "stable",
-   "version" : "0.694"
+   "version" : "0.695"
 }
 

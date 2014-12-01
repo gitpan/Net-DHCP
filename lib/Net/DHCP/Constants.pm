@@ -11,7 +11,7 @@ use warnings;
 
 our ( @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS, $VERSION );
 use Exporter;
-$VERSION = 0.694;
+$VERSION = 0.695;
 @ISA     = qw(Exporter);
 
 @EXPORT = qw(MAGIC_COOKIE);
@@ -720,7 +720,7 @@ Dean Hamstead E<lt>djzort@cpan.orgE<gt> and past Authors (see README)
 
 Many young people like to use Github, so by all means send me pull requests at
 
-https://github.com/djzort/NetAddr-MAC
+https://github.com/djzort/Net-DHCP
 
 =head1 COPYRIGHT
 

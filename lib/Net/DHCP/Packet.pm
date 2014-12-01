@@ -12,7 +12,7 @@ use warnings;
 
 our ( @ISA, @EXPORT, @EXPORT_OK, $VERSION );
 use Exporter;
-$VERSION   = 0.694;
+$VERSION   = 0.695;
 @ISA       = qw(Exporter);
 @EXPORT    = qw( packinet packinets unpackinet unpackinets );
 @EXPORT_OK = qw( );
@@ -1724,7 +1724,7 @@ See L<https://rt.cpan.org/Dist/Display.html?Queue=Net-DHCP>
 
 Many young people like to use Github, so by all means send me pull requests at
 
-https://github.com/djzort/NetAddr-MAC
+https://github.com/djzort/Net-DHCP
 
 =head1 COPYRIGHT
 

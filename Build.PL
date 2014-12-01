@@ -18,7 +18,7 @@ my %module_build_args = (
     "Dean Hamstead <dean\@bytefoundry.com.au>"
   ],
   "dist_name" => "Net-DHCP",
-  "dist_version" => "0.694",
+  "dist_version" => "0.695",
   "license" => "perl",
   "module_name" => "Net::DHCP",
   "recommends" => {},
